@@ -1,35 +1,41 @@
 import socket
 import json
+from abc import ABC, abstractmethod
 
 from shared.constants import *
 from shared.custom_exceptions import Boomerang_NetworkError
 
-# Abstract class
+# <<Abstract>> class
 # Defines network behaviour for clients (player and bots)
-class Client:
+class Client(ABC):
     def __init__(self, addr):
         super().__init__()
         self.playerId = None
         self.gameHand = []
 
 
-
-    # Requires override
-    def onResponse(self, data : dict):
+    # Required override
+    @abstractmethod
+    def onResponse(self, data : dict) -> None:
         raise NotImplementedError
     
-    # Requires override
+    # Required override
     # returns message to send
-    def onInputRequired(self):
+    @abstractmethod
+    def onInputRequired(self) -> str:
         raise NotImplementedError
     
-    # Requires override
-    def onLog(self, msg : str):
+    # Required override
+    @abstractmethod
+    def onLog(self, msg : str) -> None:
         raise NotImplementedError
     
-    # requires override 
-    def onInitialConnect(self, data : dict):
+    # required override 
+    @abstractmethod
+    def onInitialConnect(self, data : dict) -> None:
         raise NotImplementedError
+    
+
     
 
 
@@ -50,7 +56,7 @@ class Client:
         
         while True:
             msg = self.onInputRequired()
-            if msg != None:
+            if msg != "" and msg != None:
                 self.socket.send(msg.encode())
                 data = self.socket.recv(MAX_RECV_SIZE).decode()
                 self.onResponse(json.loads(data))

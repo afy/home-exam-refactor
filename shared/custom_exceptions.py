@@ -1,5 +1,5 @@
 class Boomerang_InvalidArgLengthException(Exception):
-    "Raised when instantiating server/client from args goes wrong"
+    "Raised when instantiating server/client from invalid args"
     pass
 
 class Boomerang_UserNotFoundByIdException(Exception):
@@ -11,5 +11,5 @@ class Boomerang_CardNotFoundByCodeException(Exception):
     pass
 
 class Boomerang_NetworkError(Exception):
-    "Catch-all network error for boomerang netcode. Does not apply to socket connections"
+    "Catch-all network error for boomerang netcode. Does not apply to socket connections or other netcode"
     pass

@@ -10,24 +10,26 @@ class Player(Client):
         self.ui = UI()
         self.initSocket()
 
-    def onInputRequired(self):
+    def onResponse(self, data : dict) -> None:
+        self.ui.show(data)
+        self.gameHand = data[KEY_JSON_PLAYER_HAND]
+
+    def onInputRequired(self) -> str:
         self.ui.log(self.gameHand)
         print("->")
         i = input()
         if input != '':
             if i.upper() not in self.gameHand:
                 self.ui.log("Invalid input. Please select a card from your hand by the code (\"A\" to \"-\")")
-                return None
+                return ""
             else:
                 return i
 
-    def onResponse(self, data):
-        self.ui.show(data)
-        self.gameHand = data[KEY_JSON_PLAYER_HAND]
 
-    def onLog(self, msg):
+
+    def onLog(self, msg : str) -> None:
         self.ui.log(msg)
 
-    def onInitialConnect(self, data):
+    def onInitialConnect(self, data : dict) -> None:
         self.ui.log(data)
         self.ui.log("Game started, playing as player {} with hand".format(self.playerId, self.gameHand))

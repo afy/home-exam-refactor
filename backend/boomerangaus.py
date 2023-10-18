@@ -1,30 +1,27 @@
 from backend.boomerang import BoomerangGame
 from backend.card import Card
-
 from shared.custom_exceptions import *
 
+# Example implementation of the BoomerangGame class,
+# Following the Boomerang Australia ruleset
 class BoomerangAustralia(BoomerangGame): 
     def __init__(self):
         super().__init__(_logname="BoomerangAustralia")
         self.generateDeckInfo()
 
-    # @Override as required by parent class
+
+    # Overridden from BoomerangGame
     def calculateRoundScore(self):
         self.log("CalculateScoreCall")
     
-    # @Override as required by parent class
+
+    # Overridden from BoomerangGame
     def calculateFinalScore(self):
         self.log("CalculateFinalScoreCall")
+    
 
-    # @Override as required by parent class
-    def validateClientInput(self, input):
-        self.log("{}, {}".format(input, str(input).upper() in self.codes))
-        return str(input).upper() in self.codes
-
-
-    # @Override as required by parent class
+    # Overridden from BoomerangGame
     def runRound(self, clientInputBuffer):
-        responseBuffer = {}
 
         # update decks and drafts depending on move
         for playerId, move in clientInputBuffer.items():
@@ -34,24 +31,21 @@ class BoomerangAustralia(BoomerangGame):
             player.hand.remove(playedCard)
             player.draft.append(playedCard)
 
-        # rotate cards
-        
+        # rotate cards     
         # update round score
         # all users have same #cards, so check first one for round end
         if len(self.players[0].hand) > 1:
             pass # swap normal
-
         elif len(self.players[0].hand) == 1:
             pass # swap back and then end round (special output)
 
-        # if last round,
-        if (self.round >= self.maxRound):
-            responseBuffer = self.endGame()
-        else:
-            responseBuffer = self.networkFormatter.formatRound(self.players)
 
-        self.log("Response: {}".format(responseBuffer))
-        return responseBuffer
+    # Overridden from BoomerangGame
+    def validateClientInput(self, input):
+        self.log("{}, {}".format(input, str(input).upper() in self.codes))
+        return str(input).upper() in self.codes
+
+
     
 
 

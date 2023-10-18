@@ -3,6 +3,7 @@ class Card:
         self.touristSite = _site
         self.code = _code
         self.region = _reg
+        self.number = _nr
         self.collection = _coll
         self.animal = _animal
         self.activity = _act

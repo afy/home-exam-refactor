@@ -14,7 +14,7 @@ from backend.boomerangaus import BoomerangAustralia
 class Server: 
     def __init__(self, numberClients : int, numberBots : int):
         # Replace with any Boomerang game class
-        # Must inherit and fully implement backend.
+        # Must inherit and fully implement backend.boomerang.BoomerangGame.
         self.game = BoomerangAustralia() 
 
         self.log("Initialized server with {} players and {} bots".format(numberClients, numberBots))
@@ -27,11 +27,13 @@ class Server:
         self.gameResponseBuffer = {}
         self.initSocket()
         
+
     def initSocket(self, address=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((address, port))
         
+
     # Await initial connections. Stops when all slots have been filled (self.maxConnections)
     def startListening(self):
         self.socket.listen(self.maxConnections)
@@ -47,11 +49,12 @@ class Server:
             threading.Thread(target = self.listenToClient,args = (client, address, self.currentId)).start()
             self.currentId += 1
 
+
     # Runs in a separate thread, one per client connection
     def listenToClient(self, client, address, playerId):
         while not self.gameStarted: pass
         self.gameLock.acquire()
-        client.send(json.dumps(self.game.getInitalValues(playerId)).encode())
+        client.send(json.dumps(self.game.getInitialValues(playerId)).encode())
         self.gameLock.release()
 
         while True:
@@ -61,7 +64,6 @@ class Server:
                 self.threadPrint(address, playerId, "Response recieved")
 
                 if data:
-
                     self.gameLock.acquire()
                     if not self.game.validateClientInput(data): 
                         self.threadPrint(address, playerId, "Invalid input; Asking to try again")
@@ -73,9 +75,12 @@ class Server:
                     # Write client input to shared buffer
                     self.gameLock.acquire()
                     self.clientInputBuffer[playerId] = data
+
+                    # All clients have made their selection; run game tick
                     if len(self.clientInputBuffer) >= self.maxConnections:
-                        self.gameResponseBuffer = self.game.runRound(self.clientInputBuffer)
+                        self.gameResponseBuffer = self.game.onAllClientInputLogged(self.clientInputBuffer)
                         self.clientInputBuffer = {}
+
                     self.gameLock.release()
 
                     # Wait for all buffers to write
@@ -89,10 +94,13 @@ class Server:
 
                     # Send back info from responseBuffer (see Boomerang class)
                     self.threadPrint(address, playerId, "Responding to client")
+                    self.gameLock.acquire()
+                    self.log(self.gameResponseBuffer)
                     response = self.gameResponseBuffer[playerId]
-                    client.send(json.dumps(response).encode())
                     self.gameResponseBuffer.pop(playerId)
-
+                    self.gameLock.release()
+                    client.send(json.dumps(response).encode())
+                    
                 else:
                     self.log("DANGER DANGER DANGER DANGER")
                     raise Exception("No data was sent to the server")
@@ -103,8 +111,10 @@ class Server:
                 client.close()
                 return False
             
+
     def threadPrint(self, address, playerId, msg):
         print("[Server t{}: to {}]: {}".format(playerId, address, msg))  
+
 
     def log(self, msg):
         print("[Server]: {}".format(msg))

@@ -1,4 +1,4 @@
-# Defines global-scope constants
+# Global-scope constants
 
 MAX_RECV_SIZE = 2048 # Maximum bytes sent over single TCP packet
 DEFAULT_SERVER_PORT = 12345 
