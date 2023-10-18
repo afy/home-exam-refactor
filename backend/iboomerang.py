@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod, abstractproperty
 
 class IBoomerang(ABC):
-    pass
+    @abstractmethod
+    def calculateScore(self): pass

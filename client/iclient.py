@@ -1,4 +1,11 @@
 from abc import ABC, abstractmethod
 
 class IClient(ABC):
-    pass
+    @abstractmethod
+    def initSocket(self): pass
+
+    @abstractmethod
+    def startListening(self): pass
+
+    @abstractmethod 
+    def makeChoice(self): pass

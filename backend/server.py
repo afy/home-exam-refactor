@@ -9,12 +9,12 @@ from backend.boomerang import BoomerangAustralia
 
 
 class Server: 
-    def __init__(self, numberPlayers, numberBots):
-        print("Initialized server with {} players and {} bots".format(numberPlayers, numberBots))
-        self.game = BoomerangAustralia()
+    def __init__(self, numberClients, numberBots):
+        print("Initialized server with {} players and {} bots".format(numberClients, numberBots))
+        self.game = BoomerangAustralia() # Replace with any Boomerang Game
         self.gameStarted = False
         self.clients = []
-        self.maxConnections = int(numberPlayers)
+        self.maxConnections = int(numberClients)
         self.currentId = 0
         self.gameLock = threading.Lock()
         self.clientInputBuffer = {}
@@ -27,26 +27,22 @@ class Server:
         self.socket.bind((address, port))
         
     def startListening(self):
-        self.socket.listen(4)
+        self.socket.listen(self.maxConnections)
         while True:
             client, address = self.socket.accept()
-            hs = client.recv(1024).decode()
-            if hs != "handshake_connect":
-                print("error, faulty handshake")
-            else:
-                client.send(str(self.currentId).encode())
-                self.clients.append(client)
-                finalPlayer = len(self.clients) >= self.maxConnections
-                self.game.onPlayerConnect(self.currentId, finalPlayer)
-                self.currentId += 1
-                if finalPlayer:
-                    print("Starting game")
-                    self.game.startGame()
-                    self.gameStarted = True
-                threading.Thread(target = self.listenToClient,args = (client, address, self.currentId)).start()
+            self.clients.append(client)
+            finalPlayer = len(self.clients) >= self.maxConnections
+            self.game.onPlayerConnect(self.currentId, finalPlayer)
+            self.currentId += 1
+            if finalPlayer:
+                print("Starting game")
+                self.game.startGame()
+                self.gameStarted = True
+            threading.Thread(target = self.listenToClient,args = (client, address, self.currentId)).start()
 
     def listenToClient(self, client, address, playerId):
         while not self.gameStarted: pass
+        client.send(playerId.encode())
 
         while True:
             try:
@@ -78,6 +74,7 @@ class Server:
                     del self.gameResponseBuffer[playerId]
                 else:
                     sys.exit()
+                    
             except Exception as e:
                 print("Exception in thread, closing connection: \"", e, "\"")
                 client.close()
