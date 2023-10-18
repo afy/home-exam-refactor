@@ -1,7 +1,7 @@
 import sys
 from backend.server import Server
 from client.player import Player
-from tools.custom_exceptions import Boomerang_InvalidArgLengthException
+from shared.custom_exceptions import Boomerang_InvalidArgLengthException
 
 class Main:
     def __init__(self):
