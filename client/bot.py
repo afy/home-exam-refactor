@@ -1,8 +1,7 @@
 import socket
 
 from client.iclient import IClient
-
-MAX_DATA_SIZE = 1024
+from shared.constants import *
 
 class Bot(IClient):
     def __init__(self):
@@ -11,17 +10,17 @@ class Bot(IClient):
         self.gameHand = []
         self.initSocket()
 
-    def initSocket(self, serverHost="127.0.0.1", serverPort=12345):
+    def initSocket(self, serverAddr=DEFAULT_SERVER_ADDRESS, serverPort=DEFAULT_SERVER_PORT):
         self.socket = socket.socket()
-        self.socket.connect((serverHost, serverPort))
+        self.socket.connect((serverAddr, serverPort))
         print("Successfully connected, waiting for lobby")
 
     def startListening(self):
-        self.playerId = int(self.socket.recv(1024).decode())
+        self.playerId = int(self.socket.recv(MAX_RECV_SIZE).decode())
         print("Game started as bot, client id: {}".format(self.playerId))
         
         while True:
             i = "NOT IMPLEMENTED; BOT DATA HERE"
             self.socket.send(i.encode())
-            data = self.socket.recv(MAX_DATA_SIZE).decode()
+            data = self.socket.recv(MAX_RECV_SIZE).decode()
             print(data)

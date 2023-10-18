@@ -2,6 +2,8 @@ import socket
 import threading
 import sys
 import time
+
+from shared.constants import *
 from backend.boomerang import BoomerangAustralia
 
 # adapted from
@@ -21,7 +23,7 @@ class Server:
         self.gameResponseBuffer = {}
         self.initSocket()
         
-    def initSocket(self, address='', port=12345):
+    def initSocket(self, address=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((address, port))
@@ -47,7 +49,7 @@ class Server:
         while True:
             try:
                 self.threadPrint(address, playerId, "Waiting for client response")
-                data = client.recv(1024).decode()
+                data = client.recv(MAX_RECV_SIZE).decode()
                 self.threadPrint(address, playerId, "Response recieved")
 
                 if data:

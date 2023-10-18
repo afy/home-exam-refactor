@@ -2,9 +2,8 @@ import socket
 
 from client.iclient import IClient
 from client.ui import UI
+from shared.constants import *
 
-MAX_DATA_SIZE = 1024 # bytes
- 
 class Player(IClient):
     def __init__(self, addr):
         super().__init__()
@@ -14,13 +13,13 @@ class Player(IClient):
         self.gameHand = []
         self.initSocket()
 
-    def initSocket(self, serverHost="127.0.0.1", serverPort=12345):
+    def initSocket(self, serverAddr=DEFAULT_SERVER_ADDRESS, serverPort=DEFAULT_SERVER_PORT):
         self.socket = socket.socket()
-        self.socket.connect((serverHost, serverPort))
+        self.socket.connect((serverAddr, serverPort))
         print("Successfully connected, waiting for lobby")
 
     def startListening(self):
-        self.playerId = int(self.socket.recv(1024).decode())
+        self.playerId = int(self.socket.recv(MAX_RECV_SIZE).decode())
         print("Game started, playing as player {}".format(self.playerId))
         
         while True:
