@@ -1,8 +1,8 @@
 from shared.constants import *
 
-# Format game state into JSON data that is sent to each client
-# Contains game data (hands and drafts) aswell as visuals like
-# scores
+# Format game state into JSON data that is sent to each client for UI, state mgmt and so on
+# Contains game data (hands and drafts) aswell as visuals like scores.
+# Used in the base class backend.boomerang.BoomerangGame
 class NetworkFormatter:
     def __init__(self):
         pass
@@ -15,6 +15,7 @@ class NetworkFormatter:
     def formatInitial(self, player):
         ret = self.constructBaseResponse(MESSAGE_HANDSHAKE)
         ret[KEY_JSON_ID] = player.id
+        ret[KEY_JSON_PLAYER_HAND] = self.parseCardList(player.hand)
         return ret
 
     # All rounds are over

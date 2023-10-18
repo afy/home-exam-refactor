@@ -7,7 +7,7 @@ general package (constants, cards, etc.)
 private functions
 IBoomerang to abstract class
 remove unused imports
-
+Inheritance
 
 
 IN ORIGINAL JAVA

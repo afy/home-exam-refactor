@@ -1,27 +1,24 @@
 import socket
 
-from client.iclient import IClient
+from client.client import Client
 from shared.constants import *
 
 # Automated player
-class Bot(IClient):
+class Bot(Client):
     def __init__(self):
         super().__init__()
-        self.playerId = None
-        self.gameHand = []
-        self.initSocket()
 
-    def initSocket(self, serverAddr=DEFAULT_SERVER_ADDRESS, serverPort=DEFAULT_SERVER_PORT):
-        self.socket = socket.socket()
-        self.socket.connect((serverAddr, serverPort))
-        print("Successfully connected, waiting for lobby")
+    def onInputRequired(self):
+        # Make a random guess / logic / predefined behaviour
+        return None
 
-    def startListening(self):
-        self.playerId = int(self.socket.recv(MAX_RECV_SIZE).decode())
-        print("Game started as bot, client id: {}".format(self.playerId))
-        
-        while True:
-            i = "NOT IMPLEMENTED; BOT DATA HERE"
-            self.socket.send(i.encode())
-            data = self.socket.recv(MAX_RECV_SIZE).decode()
-            print(data)
+    def onResponse(self, data : dict):
+        print(data)
+        self.gameHand = data[KEY_JSON_PLAYER_HAND]
+
+    def onLog(self, msg : str):
+        print(msg)
+
+    def onInitialConnect(self, data : dict):
+        print(data)
+        print("Game started, playing as player {} with hand".format(self.playerId, self.gameHand))

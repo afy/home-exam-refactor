@@ -3,18 +3,18 @@
 
 import socket
 import threading
-import sys
-import time
 import traceback
 import json
 
 from shared.constants import *
-from backend.boomerang import BoomerangAustralia
+from backend.boomerangaus import BoomerangAustralia
 
 # Handles network communication to/from clients over socket TCP
+# Communicates with the game logic over backend.inetwork.INetwork interface
 class Server: 
-    def __init__(self, numberClients, numberBots):
+    def __init__(self, numberClients : int, numberBots : int):
         # Replace with any Boomerang game class
+        # Must inherit and fully implement backend.
         self.game = BoomerangAustralia() 
 
         self.log("Initialized server with {} players and {} bots".format(numberClients, numberBots))
@@ -32,6 +32,7 @@ class Server:
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((address, port))
         
+    # Await initial connections. Stops when all slots have been filled (self.maxConnections)
     def startListening(self):
         self.socket.listen(self.maxConnections)
         while True:
@@ -61,11 +62,13 @@ class Server:
 
                 if data:
 
-                    if data.upper() != "A": 
+                    self.gameLock.acquire()
+                    if not self.game.validateClientInput(data): 
                         self.threadPrint(address, playerId, "Invalid input; Asking to try again")
                         client.send(json.dumps({
                             "message": "invalid message"
                         }).encode())
+                    self.gameLock.release()
 
                     # Write client input to shared buffer
                     self.gameLock.acquire()

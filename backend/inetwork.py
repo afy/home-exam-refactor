@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 
 # Interface
-# Necessary methods for GameLogic-to-Server communication
+# Defines necessary methods for GameLogic-to-Server communication
+# Used in the base class backend.boomerang.BoomerangGame
 class INetwork(ABC):
     @abstractmethod
     def onPlayerConnect(self): pass
