@@ -1,0 +1,7 @@
+add annotations
+review naming scheme
+debug logger
+review UML
+abstract/interface
+general package (constants, cards, etc.)
+private functions
