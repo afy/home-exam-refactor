@@ -4,6 +4,7 @@ from client.iclient import IClient
 from client.ui import UI
 from shared.constants import *
 
+# Client controlled by the user; handles input/print logic
 class Player(IClient):
     def __init__(self, addr):
         super().__init__()
@@ -27,5 +28,5 @@ class Player(IClient):
             i = input()
             if input != '':
                 self.socket.send(i.encode())
-                data = self.socket.recv(MAX_DATA_SIZE).decode()
+                data = self.socket.recv(MAX_RECV_SIZE).decode()
                 UI.show(data)

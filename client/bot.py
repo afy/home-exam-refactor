@@ -3,6 +3,7 @@ import socket
 from client.iclient import IClient
 from shared.constants import *
 
+# Automated player
 class Bot(IClient):
     def __init__(self):
         super().__init__()

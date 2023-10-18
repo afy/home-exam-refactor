@@ -5,3 +5,4 @@ review UML
 abstract/interface
 general package (constants, cards, etc.)
 private functions
+IBoomerang to abstract class

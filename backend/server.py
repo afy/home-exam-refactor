@@ -1,3 +1,6 @@
+# Thanks to
+# https://stackoverflow.com/questions/23828264/how-to-make-a-simple-multithreaded-socket-server-in-python-that-remembers-client
+
 import socket
 import threading
 import sys
@@ -6,14 +9,13 @@ import time
 from shared.constants import *
 from backend.boomerang import BoomerangAustralia
 
-# adapted from
-# https://stackoverflow.com/questions/23828264/how-to-make-a-simple-multithreaded-socket-server-in-python-that-remembers-client
-
-
+# Handles network communication to/from clients over socket TCP
 class Server: 
     def __init__(self, numberClients, numberBots):
+        # Replace with any Boomerang game class
+        self.game = BoomerangAustralia() 
+
         print("Initialized server with {} players and {} bots".format(numberClients, numberBots))
-        self.game = BoomerangAustralia() # Replace with any Boomerang Game
         self.gameStarted = False
         self.clients = []
         self.maxConnections = int(numberClients)
@@ -42,6 +44,7 @@ class Server:
                 self.gameStarted = True
             threading.Thread(target = self.listenToClient,args = (client, address, self.currentId)).start()
 
+    # Runs in a separate thread, one per client connection
     def listenToClient(self, client, address, playerId):
         while not self.gameStarted: pass
         client.send(playerId.encode())
@@ -53,6 +56,8 @@ class Server:
                 self.threadPrint(address, playerId, "Response recieved")
 
                 if data:
+
+                    # Write client input to shared buffer
                     self.gameLock.acquire()
                     self.clientInputBuffer[playerId] = data
                     if len(self.clientInputBuffer) >= self.maxConnections:
@@ -60,21 +65,24 @@ class Server:
                         self.clientInputBuffer = {}
                     self.gameLock.release()
 
+                    # Wait for all buffers to write
                     i = 0
                     while len(self.clientInputBuffer) < self.maxConnections:
                         if len(self.clientInputBuffer) == 0: # buffer has been cleared
                             break
-
                         if i == 0: 
                             self.threadPrint(address, playerId, "Waiting for other threads.. ({}/{})".format(len(self.clientInputBuffer), self.maxConnections))
                             time.sleep(2)
                             i = 0
 
+                    # Send back info from responseBuffer (see Boomerang class)
                     self.threadPrint(address, playerId, "Responding to client")
                     response = self.gameResponseBuffer[playerId]
                     client.send(response.encode())
                     del self.gameResponseBuffer[playerId]
+
                 else:
+                    raise Exception("No data was sent to the server")
                     sys.exit()
                     
             except Exception as e:
