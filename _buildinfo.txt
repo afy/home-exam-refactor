@@ -2,20 +2,17 @@ Python version:
 3.11.5 64-bit
 
 
-
 Additional libraries (with source):
 -
-
 
 
 Commands (Windows), run from project root:
 Run server: python main.py [#players] [#bots]
 Run client: python main.py [ip]
-Testing: python testing.py 
+Testing: python testing/testing.py 
 
 
-
-Command (Mac):
-Run server: 
-Run client: 
-Testing: 
+Command (Mac) run from project root:
+Run server: python main.py [#players] [#bots]
+Run client: python main.py [ip]
+Testing: python testing/testing.py 

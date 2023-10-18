@@ -1,13 +1,7 @@
 add annotations
-review naming scheme
-debug logger
 review UML
-abstract/interface
-general package (constants, cards, etc.)
 private functions
-IBoomerang to abstract class
-remove unused imports
-Inheritance
+Add functionality and parsing to args
 
 
 IN ORIGINAL JAVA
