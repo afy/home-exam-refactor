@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from backend.inetwork import INetwork
 from backend.helpers.networkformatter import NetworkFormatter
 from backend.objects.playerdata import PlayerData
-from shared.custom_exceptions import *
+from shared.custom_exceptions import Boomerang_NotEnoughCardsException, Boomerang_UserNotFoundByIdException, Boomerang_CardNotFoundByCodeException, Boomerang_UndefinedLogicError
 from backend.inetwork import INetwork
 
 # <<Abstract>> class representing the various versions of Boomerang
@@ -15,8 +15,10 @@ class BoomerangGame(INetwork, ABC):
         self.networkFormatter = NetworkFormatter()
         self.players = []
         self.playing = False
-        self.round = 0
-        self.maxRound = 4
+        self.round = 1
+        self.maxRound = 1
+        self.minDeckSize = 28
+        self.handSize = 3
         self.deck = []      
         self.logname = _logname
 
@@ -56,6 +58,7 @@ class BoomerangGame(INetwork, ABC):
     def onAllClientInputLogged(self, clientInputBuffer):
         hasBeenReset = False
         self.runRound(clientInputBuffer)  # Update game state 
+        self.log(self.round)
 
         # Round over
         if len(self.players[0].hand) <= 1:
@@ -68,31 +71,35 @@ class BoomerangGame(INetwork, ABC):
             hasBeenReset = True
 
         # Last round
-        if (self.round >= self.maxRound):
+        if (self.round > self.maxRound):
             self.calculateFinalScore()
             responseBuffer = self.endGame()    
         else:
             if hasBeenReset:
-                responseBuffer = self.networkFormatter.formatNewRound(self.players)
+                responseBuffer = self.networkFormatter.formatNewRound(self.players, self.round, self.maxRound)
             else:
-                responseBuffer = self.networkFormatter.formatRound(self.players)
+                responseBuffer = self.networkFormatter.formatRound(self.players, self.round, self.maxRound)
 
         return responseBuffer
 
     
     # Overridden from INetwork
-    # Run when server authenticates a connection, maxReached
-    # indicates if the server has a full lobby
+    # Run when server authenticates a connection
+    # maxReached indicates if the server has a full lobby INCLUDING the new player
     def onPlayerConnect(self, playerId, maxReached):
         if self.playing: raise NotImplementedError()
+
+        # Confirm enough cards have been defined 
+        # Called ONLY on first connection
+        if len(self.players) == 0:
+            if len(self.deck) < self.minDeckSize:
+                raise Boomerang_NotEnoughCardsException("Please define more cards for the game")
+
         playerId = int(playerId)
         player = PlayerData(playerId)
         self.players.append(player)
         self.handoutCards(player)
-
-        self.log("added player, {}, {}".format(playerId, maxReached))
-        if maxReached:
-            self.startGame()
+        self.log("added player, {} {}".format(playerId, ", Full lobby" if maxReached else ""))
 
 
     # Overridden from INetwork
@@ -100,7 +107,7 @@ class BoomerangGame(INetwork, ABC):
         self.playing = True
         self.log("Game started")
         self.shuffleDeck()
-        self.round = 0
+        self.round = 1
         
 
     # Overridden from INetwork
@@ -117,7 +124,7 @@ class BoomerangGame(INetwork, ABC):
         self.playing = False
         self.log("Game over")
         self.calculateFinalScore()
-        return self.networkFormatter.formatGameOver()
+        return self.networkFormatter.formatGameOver(self.players)
         
 
     def shuffleDeck(self):
@@ -134,7 +141,7 @@ class BoomerangGame(INetwork, ABC):
     # Hand out cards to singular player
     # Called from onPlayerConnect
     def handoutCards(self, player):
-        for i in range(0, 7):
+        for i in range(0, self.handSize):
             if len(self.deck) > 0:
                 card = self.deck.pop(0)
                 player.hand.append(card)

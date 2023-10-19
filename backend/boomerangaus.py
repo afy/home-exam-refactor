@@ -1,24 +1,27 @@
 from backend.boomerang import BoomerangGame
-from backend.objects.playerdata import PlayerData
 from backend.objects.card import Card
 from shared.custom_exceptions import *
 
 # Example implementation of the BoomerangGame class,
 # Following the Boomerang Australia ruleset
 class BoomerangAustralia(BoomerangGame): 
-    def __init__(self):
+    def __init__(self, overrideDeckGeneration = False):
         super().__init__(_logname="BoomerangAustralia")
-        self.generateDeckInfo()
+        if not overrideDeckGeneration:
+            self.generateDeckInfo()
 
 
     # Overridden from BoomerangGame
     def calculateRoundScore(self):
         self.log("CalculateScoreCall")
+        for player in self.players:
+            player.score += player.id # fair
     
 
     # Overridden from BoomerangGame
     def calculateFinalScore(self):
         self.log("CalculateFinalScoreCall")
+            
     
 
     # Overridden from BoomerangGame

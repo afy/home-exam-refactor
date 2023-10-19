@@ -6,7 +6,7 @@ DEFAULT_SERVER_ADDRESS = ''
 LOCALHOST_CONNECT_ADDR = "127.0.0.1" # used in clients on localhost
 
 # Game states
-GAME_STATE_NEW_ROUND = 3
+GAME_STATE_NEW_ROUND = 1
 GAME_STATE_MID_ROUND = 0
 GAME_STATE_GAME_OVER = 2
 
@@ -23,7 +23,7 @@ KEY_JSON_PLAYER_HAND = "hand"
 KEY_JSON_PLAYER_DRAFT = "draft"
 KEY_JSON_DETAILS = "details"
 KEY_JSON_GAMESTATE = "state"
-KEY_JSON_ROUND_NUMBER = "roundnumer"
+KEY_JSON_ROUND_NUMBER = "roundnumber"
 KEY_JSON_ROUND_TOTAL = "roundtotal"
 KEY_JSON_OTHER_PLAYER_DATA = "otherplayers"
 KEY_JSON_OTHER_PLAYER_DRAFT = "otherplayerdraft"

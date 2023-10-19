@@ -11,7 +11,7 @@ class Boomerang_CardNotFoundByCodeException(Exception):
     pass
 
 class Boomerang_NetworkError(Exception):
-    "Catch-all network error for boomerang netcode. Does not apply to socket connections or other netcode"
+    "Catch-all network error for boomerang netcode."
     pass
 
 class Boomerang_UnidentifiedMessage(Exception):
@@ -20,4 +20,8 @@ class Boomerang_UnidentifiedMessage(Exception):
 
 class Boomerang_UndefinedLogicError(Exception):
     "Called when invalid logic is detected; for example less cards in deck than required"
+    pass
+
+class Boomerang_NotEnoughCardsException(Exception):
+    "Called when not enough are defined in subclass for standard use"
     pass

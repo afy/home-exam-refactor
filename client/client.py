@@ -12,6 +12,7 @@ class Client(ABC):
         super().__init__()
         self.playerId = None
         self.gameHand = []
+        self.running = False
 
 
     # Required override
@@ -54,9 +55,18 @@ class Client(ABC):
         self.gameHand = initialData[KEY_JSON_PLAYER_HAND]
         self.onInitialConnect(initialData)
         
-        while True:
+        self.running = True
+        while self.running:
             msg = self.onInputRequired()
             if msg != "" and msg != None:
                 self.socket.send(msg.encode())
                 data = self.socket.recv(MAX_RECV_SIZE).decode()
-                self.onResponse(json.loads(data))
+                data = json.loads(data)
+                if data[KEY_JSON_GAMESTATE] == GAME_STATE_GAME_OVER:
+                    self.socket.close()
+                    self.running = False
+
+                self.onResponse(data)
+
+
+

@@ -5,9 +5,10 @@ import socket
 import threading
 import traceback
 import json
+import sys
 
 from shared.constants import *
-from shared.custom_exceptions import Boomerang_InvalidArgException
+from shared.custom_exceptions import Boomerang_InvalidArgException, Boomerang_NetworkError
 from backend.boomerangaus import BoomerangAustralia
 
 # Handles network communication to/from clients over socket TCP
@@ -17,21 +18,21 @@ class Server:
         numberClients, numberBots = self.parseArgs(numberClients, numberBots)
         self.autoClose = autoClose
         self.logging = logging
-        
+
         # Replace with any Boomerang game class
         # Must inherit and fully implement backend.boomerang.BoomerangGame.
         self.game = BoomerangAustralia() 
 
         self.log("Initialized server with {} players and {} bots".format(numberClients, numberBots))
         self.gameStarted = False
-        self.stopped = False
+        self.running = True
         self.clients = []
         self.currentId = 0
         self.maxConnections = numberClients
         self.gameLock = threading.Lock()
+        self.clientLock = threading.Lock()
         self.clientInputBuffer = {}
         self.gameResponseBuffer = {}
-
         self.initSocket()
         
 
@@ -46,16 +47,19 @@ class Server:
     # Await initial connections. Stops when all slots have been filled (self.maxConnections)
     def startListening(self):
         self.socket.listen(self.maxConnections)
-        while True:
+        while self.running:
             client, address = self.socket.accept()
             self.clients.append(client)
             finalPlayer = len(self.clients) >= self.maxConnections
             self.game.onPlayerConnect(self.currentId, finalPlayer)
+        
+            threading.Thread(target = self.listenToClient,args = (client, address, self.currentId)).start()
             if finalPlayer:
-                self.log("Starting game")
+                self.log("Lobby is full")
                 self.game.startGame()
                 self.gameStarted = True
-            threading.Thread(target = self.listenToClient,args = (client, address, self.currentId)).start()
+                break
+
             self.currentId += 1
 
 
@@ -66,7 +70,7 @@ class Server:
         client.send(json.dumps(self.game.getInitialValues(playerId)).encode())
         self.gameLock.release()
 
-        while True and not self.stopped:
+        while True and self.running:
             try:
                 self.threadPrint(address, playerId, "Waiting for client response")
                 data = client.recv(MAX_RECV_SIZE).decode()
@@ -107,19 +111,33 @@ class Server:
                     # Send back info from responseBuffer (see Boomerang class)
                     self.threadPrint(address, playerId, "Responding to client")
                     self.gameLock.acquire()
-                    self.log(self.gameResponseBuffer)
                     response = self.gameResponseBuffer[KEY_JSON_PLAYER_RETURN_DICT][playerId]
+                    gameOver = response[KEY_JSON_GAMESTATE] == GAME_STATE_GAME_OVER
                     self.gameResponseBuffer[KEY_JSON_PLAYER_RETURN_DICT].pop(playerId)
                     self.gameLock.release()
                     client.send(json.dumps(response).encode())
+
+                    if gameOver:
+                        self.threadPrint(address, playerId, "Detected game over message from boomerang, closing socket + thread.")
+                        client.close()
+
+                        self.clientLock.acquire()
+                        self.clients.remove(client)
+                        self.threadPrint(address, playerId, "Client count: {}".format(len(self.clients)))
+                        self.clientLock.release()
+
+                        # This thread is the last listening thread
+                        if len(self.clients) <= 0:
+                            self.stop()
+
+                        sys.exit()
                     
                 else:
-                    self.log("DANGER DANGER DANGER DANGER")
-                    raise Exception("No data was sent to the server")
-                    #sys.exit()
+                    raise Boomerang_NetworkError("No data was sent to the server")
                     
             except Exception as e:
-                self.log("Exception in thread, closing connection: {} [{}] \n{}".format(e, repr(e), traceback.print_exc()))
+                self.log("Caught exception in thread, closing connection: {} [{}] \n{}".format(e, repr(e), traceback.print_exc()))
+                self.clients.remove(client)
                 client.close()
                 return False
             
@@ -135,8 +153,9 @@ class Server:
 
 
     def stop(self):
+        print("Closing")
+        self.running = False
         self.socket.close()
-        self.stopped = True
 
 
     def parseArgs(self, clients, bots):

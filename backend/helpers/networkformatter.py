@@ -23,42 +23,59 @@ class NetworkFormatter:
         return ret
     
 
-    def formatNewRound(self, players):
-        return self.formatRound(players, roundState = GAME_STATE_NEW_ROUND)
+    def formatNewRound(self, players, round, maxRound):
+        return self.formatRound(players, round, maxRound, gameState = GAME_STATE_NEW_ROUND)
 
 
     # All rounds are over
-    def formatGameOver(self):
+    def formatGameOver(self, players):
         ret = self.constructBaseResponse()
-        ret[KEY_JSON_GAMESTATE] = GAME_STATE_GAME_OVER
+        ret[KEY_JSON_PLAYER_RETURN_DICT] = {}
+        for player in players:
+            ret[KEY_JSON_PLAYER_RETURN_DICT][player.id] = self.formatIndivdualGameOver(player, players)
         return ret
 
 
     # Called after runRound 
-    def formatRound(self, players, roundState = GAME_STATE_MID_ROUND):
+    def formatRound(self, players, round, maxRound, gameState = GAME_STATE_MID_ROUND):
         ret = self.constructBaseResponse()
         ret[KEY_JSON_PLAYER_RETURN_DICT] = {}
         for player in players:
-            ret[KEY_JSON_PLAYER_RETURN_DICT][player.id] = self.formatIndividualRound(player, players, roundState)
+            ret[KEY_JSON_PLAYER_RETURN_DICT][player.id] = self.formatIndividualRound(player, players, round, maxRound, gameState)
         return ret
 
 
     # Format individual return data ; what the client "sees"
-    def formatIndividualRound(self, player, players, roundState):
+    def formatIndividualRound(self, player, players, round, maxRound, gameState):
         ret = self.constructBaseResponse()
-        ret[KEY_JSON_GAMESTATE] = roundState
+        ret[KEY_JSON_GAMESTATE] = gameState
+        ret[KEY_JSON_ROUND_NUMBER] = round
+        ret[KEY_JSON_ROUND_TOTAL] = maxRound
         ret[KEY_JSON_PLAYER_HAND] = self.parseCardList(player.hand)
         ret[KEY_JSON_PLAYER_DRAFT] = self.parseCardList(player.draft)
         ret[KEY_JSON_PLAYER_SCORE] = player.score
         ret[KEY_JSON_OTHER_PLAYER_DATA] = {}
-
         for other in players:
             if other.id != player.id:
                 ret[KEY_JSON_OTHER_PLAYER_DATA][other.id] = {
                     KEY_JSON_OTHER_PLAYER_DRAFT: self.parseCardList(other.draft),
                     KEY_JSON_OTHER_PLAYER_SCORE: other.score
                 }
+        return ret
+    
 
+    # Format the individual data for the "game over" screne
+    def formatIndivdualGameOver(self, player, players):
+        ret = self.constructBaseResponse()
+        ret[KEY_JSON_GAMESTATE] = GAME_STATE_GAME_OVER
+        ret[KEY_JSON_PLAYER_SCORE] = player.score
+        ret[KEY_JSON_PLAYER_ID] = player.id
+        ret[KEY_JSON_OTHER_PLAYER_DATA] = {}
+        for other in players:
+            if other.id != player.id:
+                ret[KEY_JSON_OTHER_PLAYER_DATA][other.id] = {
+                    KEY_JSON_OTHER_PLAYER_SCORE: other.score
+                }
         return ret
     
 

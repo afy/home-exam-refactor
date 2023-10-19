@@ -12,6 +12,10 @@ class Player(Client):
 
 
     def onResponse(self, data : dict) -> None:
+        if data[KEY_JSON_GAMESTATE] == GAME_STATE_GAME_OVER:
+            self.ui.showGameOver(data)
+            return
+
         msg = data[KEY_JSON_MESSAGE]
         if msg == MESSAGE_NORMAL:
             self.ui.show(data)
