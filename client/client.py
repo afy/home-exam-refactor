@@ -3,6 +3,8 @@ import json
 from abc import ABC, abstractmethod
 
 from shared.constants import *
+from shared.jsonkeys import KEY_JSON_GAMESTATE, KEY_JSON_MESSAGE, KEY_JSON_PLAYER_ID, KEY_JSON_PLAYER_HAND
+from shared.gamestates import GAME_STATE_GAME_OVER
 from shared.custom_exceptions import Boomerang_NetworkError
 
 # <<Abstract>> class
@@ -62,6 +64,7 @@ class Client(ABC):
                 self.socket.send(msg.encode())
                 data = self.socket.recv(MAX_RECV_SIZE).decode()
                 data = json.loads(data)
+                print(data)
                 if data[KEY_JSON_GAMESTATE] == GAME_STATE_GAME_OVER:
                     self.socket.close()
                     self.running = False

@@ -5,9 +5,6 @@ import backend.boomerang
 import backend.server
 import backend.boomerangaus
 
-import client.bot
-import client.client
-
 from shared.constants import *
 from shared.custom_exceptions import *
 
@@ -18,9 +15,9 @@ class RequirementTesting1(unittest.TestCase):
     def test_requirement1(self):
         self.assertRaises(Boomerang_InvalidArgException, backend.server.Server, 1, 0, True, False)
         self.assertRaises(Boomerang_InvalidArgException, backend.server.Server, 5, 0, True, False)
-        backend.server.Server(2, 0, autoClose=True, logging=False) # Autoclose to prevent resourcewarning
-        backend.server.Server(3, 0, autoClose=True, logging=False)
-        backend.server.Server(4, 0, autoClose=True, logging=False)
+        backend.server.Server(2, 0, preventNet=True, logging=False)
+        backend.server.Server(3, 0, preventNet=True, logging=False)
+        backend.server.Server(4, 0, preventNet=True, logging=False)
 
 
     def test_requirement2(self):
@@ -32,7 +29,6 @@ class RequirementTesting1(unittest.TestCase):
         arr1 = game.deck
         game.shuffleDeck()
         arr2 = game.deck
-
         # Shuffle does not gaurantee all elements are shuffled;
         # Allow some flexibility
         n = 0
@@ -43,10 +39,9 @@ class RequirementTesting1(unittest.TestCase):
 
 
     def test_requirement4(self):
-        s = backend.server.Server(2, 0, autoClose=True, logging=False) # Autoclose to prevent resourcewarning
-        s.startListening()
-        b1 = client.bot.Bot()
-        b1.initSocket()
+        s = backend.server.Server(2, 1, preventNet=True, logging=False)
+        self.assertEquals(len(s.game.getBots()[0].hand), 7)
+
 
     def test_requirement5(self):
         pass
@@ -90,7 +85,6 @@ class RequirementTesting2(unittest.TestCase):
 
     def test_requirement12(self):
         pass
-
 
 
 if __name__ == "__main__":

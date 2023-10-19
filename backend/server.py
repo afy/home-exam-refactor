@@ -10,38 +10,42 @@ import sys
 from shared.constants import *
 from shared.custom_exceptions import Boomerang_InvalidArgException, Boomerang_NetworkError
 from backend.boomerangaus import BoomerangAustralia
+from shared.gamestates import GAME_STATE_GAME_OVER
+from shared.jsonkeys import KEY_JSON_PLAYER_RETURN_DICT, KEY_JSON_GAMESTATE
 
 # Handles network communication to/from clients over socket TCP
 # Communicates with the game logic over backend.inetwork.INetwork interface
 class Server: 
-    def __init__(self, numberClients : int, numberBots : int, autoClose : bool = False, logging : bool = True):
+    def __init__(self, numberClients : int, numberBots : int, preventNet : bool = False, logging : bool = True):
         numberClients, numberBots = self.parseArgs(numberClients, numberBots)
-        self.autoClose = autoClose
         self.logging = logging
 
         # Replace with any Boomerang game class
         # Must inherit and fully implement backend.boomerang.BoomerangGame.
         self.game = BoomerangAustralia() 
 
+        # Manage bots
+        self.currentId = 0
+        self.maxConnections = numberClients - numberBots
+        for i in range(0, numberBots):
+            self.game.addBot(self.currentId)
+            self.currentId += 1
+
         self.log("Initialized server with {} players and {} bots".format(numberClients, numberBots))
         self.gameStarted = False
         self.running = True
         self.clients = []
-        self.currentId = 0
-        self.maxConnections = numberClients
         self.gameLock = threading.Lock()
         self.clientLock = threading.Lock()
         self.clientInputBuffer = {}
         self.gameResponseBuffer = {}
-        self.initSocket()
+        if not preventNet: self.initSocket()
         
 
     def initSocket(self, address=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((address, port))
-        if self.autoClose:
-            self.stop()
         
 
     # Await initial connections. Stops when all slots have been filled (self.maxConnections)

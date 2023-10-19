@@ -1,12 +1,13 @@
-from shared.constants import *
+from shared.jsonkeys import *
+from shared.gamestates import *
 from shared.custom_exceptions import Boomerang_UndefinedLogicError
 
 # <<Helper>> class
 # Responsible for client-side display, client.player.Player class only
 class UI:
     def __init__(self): 
-        self.divider = "=" * 20 
-        self.divider += " "
+        self.largeDivider = ("=" * 20) + " "
+        self.smallDivider = ("="*10) + " "
 
 
     # Called on connect
@@ -16,14 +17,11 @@ class UI:
 
     def showGameOver(self, data : dict):
         if data[KEY_JSON_GAMESTATE] == GAME_STATE_GAME_OVER:
-            print(self.divider + "Game Over!")
+            print(self.largeDivider + "Game Over!")
             print("Scores:")
             print("You scored {} points!".format(data[KEY_JSON_PLAYER_SCORE]))
-            maxScore, winnerId = data[KEY_JSON_PLAYER_SCORE], data[KEY_JSON_PLAYER_ID]
+            winnerId = data[KEY_JSON_WINNER_ID]
             for pid, pdata in data[KEY_JSON_OTHER_PLAYER_DATA].items():
-                if pdata[KEY_JSON_OTHER_PLAYER_SCORE] > maxScore:
-                    maxScore = pdata[KEY_JSON_OTHER_PLAYER_SCORE]
-                    winnerId = pid
                 print("Player {} scored {} points".format(pid, pdata[KEY_JSON_OTHER_PLAYER_SCORE]))
 
             # Player won
@@ -31,7 +29,7 @@ class UI:
                 print("You won the game!")
 
             else:
-                print("Player {} won the game!".format(winnerId))
+                print("\nPlayer {} won the game!".format(winnerId))
 
         else:
             raise Boomerang_UndefinedLogicError("onGameOver has been called but the game is still ongoing")
@@ -40,7 +38,7 @@ class UI:
     # Display appropriate view given the JSON data from the client
     def show(self, data : dict):
         if data[KEY_JSON_GAMESTATE] == GAME_STATE_NEW_ROUND:
-            print(self.divider + "New Round ({}/{})".format(
+            print(self.largeDivider + "New Round ({}/{})".format(
                 data[KEY_JSON_ROUND_NUMBER], data[KEY_JSON_ROUND_TOTAL]
             ))
             print("Draft: {}".format(data[KEY_JSON_PLAYER_DRAFT]))
@@ -49,14 +47,20 @@ class UI:
             
 
         elif data[KEY_JSON_GAMESTATE] == GAME_STATE_MID_ROUND:
+            print(self.smallDivider)
             print("Draft: {}".format(data[KEY_JSON_PLAYER_DRAFT]))
             print("Hand: {}".format(data[KEY_JSON_PLAYER_HAND]))
             self.printOtherPlayerHands(data[KEY_JSON_OTHER_PLAYER_DATA])
+
+        elif data[KEY_JSON_GAMESTATE] == GAME_STATE_ACTIVITY_SELECTION:
+            print(self.smallDivider)
+            print("Select one activity from the list below. Input corresponding index (starting at one)")
+            print("Input \"X\" instead to skip selection")
+            print("Activities: {}".format(data[KEY_JSON_ACTIVITY_LIST]))
             
 
 
     def printOtherPlayerHands(self, data : dict):
-        print(data)
         for id in data:
             print("Player {} draft: {}".format(id, data[id][KEY_JSON_OTHER_PLAYER_DRAFT]))
 

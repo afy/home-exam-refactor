@@ -4,7 +4,8 @@ from abc import ABC, abstractmethod
 from backend.inetwork import INetwork
 from backend.helpers.networkformatter import NetworkFormatter
 from backend.objects.playerdata import PlayerData
-from shared.custom_exceptions import Boomerang_NotEnoughCardsException, Boomerang_UserNotFoundByIdException, Boomerang_CardNotFoundByCodeException, Boomerang_UndefinedLogicError
+from shared.custom_exceptions import *
+from shared.gamestates import *
 from backend.inetwork import INetwork
 
 # <<Abstract>> class representing the various versions of Boomerang
@@ -16,11 +17,12 @@ class BoomerangGame(INetwork, ABC):
         self.players = []
         self.playing = False
         self.round = 1
-        self.maxRound = 1
+        self.maxRound = 6
         self.minDeckSize = 28
         self.handSize = 3
         self.deck = []      
         self.logname = _logname
+        self.gameState = GAME_STATE_NOT_STARTED
 
 
     # Required override
@@ -32,9 +34,9 @@ class BoomerangGame(INetwork, ABC):
 
     # Required override
     # Calculate score for each player at the end of the game
-    # Updates self.players
+    # Return id of winner
     @abstractmethod
-    def calculateFinalScore(self) -> None:
+    def calculateWinner(self) -> int:
         raise NotImplementedError
 
     # Required override
@@ -50,18 +52,41 @@ class BoomerangGame(INetwork, ABC):
     def validateClientInput(self, input : str, playerId : int) -> bool:
         raise NotImplementedError
     
-
+    # Required override
+    # Make a decision for bots (serverside)
+    def makeBotDecision(self, bot):
+        raise NotImplementedError
+    
+    
 
 
 
     # Overridden from INetwork
+    def addBot(self, id) -> None:
+        if self.playing: raise Boomerang_NetworkError("Bot cant be added while game is in session")
+
+        # Confirm enough cards have been defined 
+        # Called ONLY on first connection
+        if len(self.players) == 0:
+            if len(self.deck) < self.minDeckSize:
+                raise Boomerang_NotEnoughCardsException("Please define more cards for the game")
+
+        bot = PlayerData(int(id), bot=True)
+        self.players.append(bot)
+        self.handoutCards(bot)
+    
+
+    # Overridden from INetwork
     def onAllClientInputLogged(self, clientInputBuffer):
-        hasBeenReset = False
-        self.runRound(clientInputBuffer)  # Update game state 
-        self.log(self.round)
+        hasBeenReset = False # If True, round has reset (round end met)
+        for bot in self.getBots():
+            self.makeBotDecision(bot)
+
+         # Update game state 
+        self.runRound(clientInputBuffer) 
 
         # Round over
-        if len(self.players[0].hand) <= 1:
+        if len(self.players[0].hand) == 0:
             self.calculateRoundScore()
             self.round += 1
             self.resetDeck()
@@ -72,22 +97,23 @@ class BoomerangGame(INetwork, ABC):
 
         # Last round
         if (self.round > self.maxRound):
-            self.calculateFinalScore()
-            responseBuffer = self.endGame()    
-        else:
-            if hasBeenReset:
-                responseBuffer = self.networkFormatter.formatNewRound(self.players, self.round, self.maxRound)
-            else:
-                responseBuffer = self.networkFormatter.formatRound(self.players, self.round, self.maxRound)
+            return self.endGame(self.calculateWinner())  
+          
+        if hasBeenReset:
+            return self.networkFormatter.formatNewRound(self.players, self.round, self.maxRound)
 
-        return responseBuffer
+        if self.gameState == GAME_STATE_ACTIVITY_SELECTION:
+            return self.networkFormatter.formatActivityRound(self.players)
+            
+        return self.networkFormatter.formatRound(self.players, self.round, self.maxRound)
+
 
     
     # Overridden from INetwork
     # Run when server authenticates a connection
     # maxReached indicates if the server has a full lobby INCLUDING the new player
     def onPlayerConnect(self, playerId, maxReached):
-        if self.playing: raise NotImplementedError()
+        if self.playing: raise Boomerang_NetworkError("Player cant connect while game is in session")
 
         # Confirm enough cards have been defined 
         # Called ONLY on first connection
@@ -108,6 +134,7 @@ class BoomerangGame(INetwork, ABC):
         self.log("Game started")
         self.shuffleDeck()
         self.round = 1
+        self.gameState = GAME_STATE_MID_ROUND
         
 
     # Overridden from INetwork
@@ -120,11 +147,10 @@ class BoomerangGame(INetwork, ABC):
 
     # Called when last round has been played
     # Must return a formatted view from networkFormatter
-    def endGame(self):
+    def endGame(self, winnerid):
         self.playing = False
         self.log("Game over")
-        self.calculateFinalScore()
-        return self.networkFormatter.formatGameOver(self.players)
+        return self.networkFormatter.formatGameOver(self.players, winnerid)
         
 
     def shuffleDeck(self):
@@ -163,3 +189,9 @@ class BoomerangGame(INetwork, ABC):
         for c in player.hand:
             if c.code == code.upper(): return c
         raise Boomerang_CardNotFoundByCodeException
+    
+    def getBots(self) -> list: 
+        ret = []
+        for player in self.players:
+            if player.isBot: ret.append(player)
+        return ret

@@ -1,4 +1,6 @@
 from shared.constants import *
+from shared.jsonkeys import *
+from shared.gamestates import *
 
 
 # <<Helper>> class
@@ -8,6 +10,12 @@ from shared.constants import *
 class NetworkFormatter:
     def __init__(self): pass
 
+    def formatActivityRound(self, players):
+        ret = self.constructBaseResponse()
+        ret[KEY_JSON_PLAYER_RETURN_DICT] = {}
+        for player in players:
+            ret[KEY_JSON_PLAYER_RETURN_DICT][player.id] = self.formatIndividualActivityRound(player)
+        return ret
 
     def formatError(self, err, message):
         ret = self.constructBaseResponse(message)
@@ -28,11 +36,11 @@ class NetworkFormatter:
 
 
     # All rounds are over
-    def formatGameOver(self, players):
+    def formatGameOver(self, players, winnerid):
         ret = self.constructBaseResponse()
         ret[KEY_JSON_PLAYER_RETURN_DICT] = {}
         for player in players:
-            ret[KEY_JSON_PLAYER_RETURN_DICT][player.id] = self.formatIndivdualGameOver(player, players)
+            ret[KEY_JSON_PLAYER_RETURN_DICT][player.id] = self.formatIndivdualGameOver(player, players, winnerid)
         return ret
 
 
@@ -44,6 +52,13 @@ class NetworkFormatter:
             ret[KEY_JSON_PLAYER_RETURN_DICT][player.id] = self.formatIndividualRound(player, players, round, maxRound, gameState)
         return ret
 
+
+
+    def formatIndividualActivityRound(self, player):
+        ret = self.constructBaseResponse()
+        ret[KEY_JSON_GAMESTATE] = GAME_STATE_ACTIVITY_SELECTION
+        ret[KEY_JSON_ACTIVITY_LIST] = player.activities
+        return ret
 
     # Format individual return data ; what the client "sees"
     def formatIndividualRound(self, player, players, round, maxRound, gameState):
@@ -65,11 +80,12 @@ class NetworkFormatter:
     
 
     # Format the individual data for the "game over" screne
-    def formatIndivdualGameOver(self, player, players):
+    def formatIndivdualGameOver(self, player, players, winnerid):
         ret = self.constructBaseResponse()
         ret[KEY_JSON_GAMESTATE] = GAME_STATE_GAME_OVER
         ret[KEY_JSON_PLAYER_SCORE] = player.score
         ret[KEY_JSON_PLAYER_ID] = player.id
+        ret[KEY_JSON_WINNER_ID] = winnerid
         ret[KEY_JSON_OTHER_PLAYER_DATA] = {}
         for other in players:
             if other.id != player.id:
@@ -86,7 +102,9 @@ class NetworkFormatter:
             ret.append(e.code)
         return ret
     
+    
 
     # use message=None for wrappers/internal
     def constructBaseResponse(self, message=MESSAGE_NORMAL):
-        return {} if message==None else {KEY_JSON_MESSAGE: message}
+        base = {} if message==None else {KEY_JSON_MESSAGE: message}
+        return base

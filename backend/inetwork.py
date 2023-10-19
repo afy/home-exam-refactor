@@ -18,3 +18,6 @@ class INetwork(ABC):
 
     @abstractmethod
     def startGame(self) -> None: pass
+
+    @abstractmethod
+    def addBot(self, id) -> None: pass
