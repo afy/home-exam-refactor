@@ -1,5 +1,6 @@
 from backend.boomerang import BoomerangGame
-from backend.card import Card
+from backend.objects.playerdata import PlayerData
+from backend.objects.card import Card
 from shared.custom_exceptions import *
 
 # Example implementation of the BoomerangGame class,
@@ -21,32 +22,44 @@ class BoomerangAustralia(BoomerangGame):
     
 
     # Overridden from BoomerangGame
+    # Implementation for Australia
     def runRound(self, clientInputBuffer):
 
         # update decks and drafts depending on move
         for playerId, move in clientInputBuffer.items():
-            self.log("{}, {}".format(playerId, move))
             player = self.getPlayerById(int(playerId))
             playedCard = self.getCardInHand(player, move)
             player.hand.remove(playedCard)
             player.draft.append(playedCard)
 
-        # rotate cards     
-        # update round score
-        # all users have same #cards, so check first one for round end
-        if len(self.players[0].hand) > 1:
-            pass # swap normal
-        elif len(self.players[0].hand) == 1:
-            pass # swap back and then end round (special output)
+        # sample a random hand size; all users have the same size
+        currentHandSize = len(self.players[0].hand) 
+        if currentHandSize > 1:
+
+            # rotate cards     
+            lp = len(self.players)-1
+            savedDecks = [self.players[lp].hand]
+            for i in range(0, lp):
+                savedDecks.append(self.players[i].hand)
+            for j in range(0, lp+1):
+                self.players[j].hand = savedDecks[j]
+
+        else:
+            self.log("roundOver")
 
 
     # Overridden from BoomerangGame
-    def validateClientInput(self, input):
-        self.log("{}, {}".format(input, str(input).upper() in self.codes))
-        return str(input).upper() in self.codes
-
-
+    def validateClientInput(self, input, playerId):
+        try:
+            player = self.getPlayerById(playerId)
+        except Boomerang_UserNotFoundByIdException:
+            self.log("In validate: Invalid playerId. Returning false")
+            return False
     
+        for c in player.hand:
+            if c.code == str(input).upper():
+                return True
+        return False
 
 
     def generateDeckInfo(self):

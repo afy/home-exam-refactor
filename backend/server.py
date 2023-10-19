@@ -7,24 +7,31 @@ import traceback
 import json
 
 from shared.constants import *
+from shared.custom_exceptions import Boomerang_InvalidArgException
 from backend.boomerangaus import BoomerangAustralia
 
 # Handles network communication to/from clients over socket TCP
 # Communicates with the game logic over backend.inetwork.INetwork interface
 class Server: 
-    def __init__(self, numberClients : int, numberBots : int):
+    def __init__(self, numberClients : int, numberBots : int, autoClose : bool = False, logging : bool = True):
+        numberClients, numberBots = self.parseArgs(numberClients, numberBots)
+        self.autoClose = autoClose
+        self.logging = logging
+        
         # Replace with any Boomerang game class
         # Must inherit and fully implement backend.boomerang.BoomerangGame.
         self.game = BoomerangAustralia() 
 
         self.log("Initialized server with {} players and {} bots".format(numberClients, numberBots))
         self.gameStarted = False
+        self.stopped = False
         self.clients = []
-        self.maxConnections = int(numberClients)
         self.currentId = 0
+        self.maxConnections = numberClients
         self.gameLock = threading.Lock()
         self.clientInputBuffer = {}
         self.gameResponseBuffer = {}
+
         self.initSocket()
         
 
@@ -32,6 +39,8 @@ class Server:
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind((address, port))
+        if self.autoClose:
+            self.stop()
         
 
     # Await initial connections. Stops when all slots have been filled (self.maxConnections)
@@ -57,7 +66,7 @@ class Server:
         client.send(json.dumps(self.game.getInitialValues(playerId)).encode())
         self.gameLock.release()
 
-        while True:
+        while True and not self.stopped:
             try:
                 self.threadPrint(address, playerId, "Waiting for client response")
                 data = client.recv(MAX_RECV_SIZE).decode()
@@ -65,11 +74,14 @@ class Server:
 
                 if data:
                     self.gameLock.acquire()
-                    if not self.game.validateClientInput(data): 
+                    if not self.game.validateClientInput(data, playerId): 
                         self.threadPrint(address, playerId, "Invalid input; Asking to try again")
                         client.send(json.dumps({
                             "message": "invalid message"
                         }).encode())
+                        self.gameLock.release()
+                        continue
+                    
                     self.gameLock.release()
 
                     # Write client input to shared buffer
@@ -96,8 +108,8 @@ class Server:
                     self.threadPrint(address, playerId, "Responding to client")
                     self.gameLock.acquire()
                     self.log(self.gameResponseBuffer)
-                    response = self.gameResponseBuffer[playerId]
-                    self.gameResponseBuffer.pop(playerId)
+                    response = self.gameResponseBuffer[KEY_JSON_PLAYER_RETURN_DICT][playerId]
+                    self.gameResponseBuffer[KEY_JSON_PLAYER_RETURN_DICT].pop(playerId)
                     self.gameLock.release()
                     client.send(json.dumps(response).encode())
                     
@@ -113,8 +125,35 @@ class Server:
             
 
     def threadPrint(self, address, playerId, msg):
+        if not self.logging: return
         print("[Server t{}: to {}]: {}".format(playerId, address, msg))  
 
 
     def log(self, msg):
+        if not self.logging: return
         print("[Server]: {}".format(msg))
+
+
+    def stop(self):
+        self.socket.close()
+        self.stopped = True
+
+
+    def parseArgs(self, clients, bots):
+        try:
+            clients = int(clients)
+        except ValueError:
+            raise Boomerang_InvalidArgException("#Clients cant be converted to int")
+        
+        if clients < 2 or clients > 4:
+            raise Boomerang_InvalidArgException("#Clients must be between 2 and 4")
+        
+        try:
+            bots = int(bots)
+        except ValueError:
+            raise Boomerang_InvalidArgException("#Bots cant be converted to int")
+        
+        if bots < 0 or bots >= clients:
+            raise Boomerang_InvalidArgException("#Bots must be >0 and <#clients")
+        
+        return clients, bots

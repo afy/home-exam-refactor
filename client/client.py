@@ -50,7 +50,7 @@ class Client(ABC):
         if initialData[KEY_JSON_MESSAGE] != MESSAGE_HANDSHAKE:
             raise Boomerang_NetworkError("First message from server must be a handshake")
 
-        self.playerId = int(initialData[KEY_JSON_ID])
+        self.playerId = int(initialData[KEY_JSON_PLAYER_ID])
         self.gameHand = initialData[KEY_JSON_PLAYER_HAND]
         self.onInitialConnect(initialData)
         

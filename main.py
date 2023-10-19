@@ -1,7 +1,7 @@
 import sys
 from backend.server import Server
 from client.player import Player
-from shared.custom_exceptions import Boomerang_InvalidArgLengthException
+from shared.custom_exceptions import Boomerang_InvalidArgException
 
 class Main:
     def __init__(self):
@@ -13,7 +13,7 @@ class Main:
                     server = Server(sys.argv[1], sys.argv[2])
                     server.startListening() 
                 case _:
-                    raise Boomerang_InvalidArgLengthException
+                    raise Boomerang_InvalidArgException
 
 
 # program entry point

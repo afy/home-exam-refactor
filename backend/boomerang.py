@@ -2,8 +2,8 @@ import random
 from abc import ABC, abstractmethod
 
 from backend.inetwork import INetwork
-from backend.networkformatter import NetworkFormatter
-from backend.playerdata import PlayerData
+from backend.helpers.networkformatter import NetworkFormatter
+from backend.objects.playerdata import PlayerData
 from shared.custom_exceptions import *
 from backend.inetwork import INetwork
 
@@ -45,7 +45,7 @@ class BoomerangGame(INetwork, ABC):
     # Required override
     # Called from server to validate input
     @abstractmethod
-    def validateClientInput(self, input : str) -> bool:
+    def validateClientInput(self, input : str, playerId : int) -> bool:
         raise NotImplementedError
     
 
@@ -54,15 +54,29 @@ class BoomerangGame(INetwork, ABC):
 
     # Overridden from INetwork
     def onAllClientInputLogged(self, clientInputBuffer):
+        hasBeenReset = False
         self.runRound(clientInputBuffer)  # Update game state 
+
+        # Round over
+        if len(self.players[0].hand) <= 1:
+            self.calculateRoundScore()
+            self.round += 1
+            self.resetDeck()
+            self.shuffleDeck()
+            for player in self.players:
+                self.handoutCards(player)
+            hasBeenReset = True
 
         # Last round
         if (self.round >= self.maxRound):
+            self.calculateFinalScore()
             responseBuffer = self.endGame()    
         else:
-            responseBuffer = self.networkFormatter.formatRound(self.players)
+            if hasBeenReset:
+                responseBuffer = self.networkFormatter.formatNewRound(self.players)
+            else:
+                responseBuffer = self.networkFormatter.formatRound(self.players)
 
-        self.log("Response: {}".format(responseBuffer))
         return responseBuffer
 
     
@@ -107,7 +121,14 @@ class BoomerangGame(INetwork, ABC):
         
 
     def shuffleDeck(self):
-        random.shuffle(self.deck)
+        pass #random.shuffle(self.deck)
+
+    def resetDeck(self):
+        for player in self.players:
+            self.deck = self.deck + player.hand + player.draft
+            player.hand = []
+            player.draft = []
+                
 
 
     # Hand out cards to singular player
@@ -115,11 +136,10 @@ class BoomerangGame(INetwork, ABC):
     def handoutCards(self, player):
         for i in range(0, 7):
             if len(self.deck) > 0:
-                card = self.deck.pop(random.randrange(len(self.deck)))
+                card = self.deck.pop(0)
                 player.hand.append(card)
             else:
-                print("Out of cards in deck")
-                break
+                raise Boomerang_UndefinedLogicError("Not enough cards in deck to hand out")
 
 
     def log(self, msg):
