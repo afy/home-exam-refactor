@@ -5,7 +5,8 @@ from shared.custom_exceptions import Boomerang_UndefinedLogicError
 # Responsible for client-side display, client.player.Player class only
 class UI:
     def __init__(self): 
-        self.divider = "=" * 20
+        self.divider = "=" * 20 
+        self.divider += " "
 
 
     # Called on connect
@@ -39,15 +40,25 @@ class UI:
     # Display appropriate view given the JSON data from the client
     def show(self, data : dict):
         if data[KEY_JSON_GAMESTATE] == GAME_STATE_NEW_ROUND:
-            print(self.divider + " New Round ({}/{})".format(
+            print(self.divider + "New Round ({}/{})".format(
                 data[KEY_JSON_ROUND_NUMBER], data[KEY_JSON_ROUND_TOTAL]
             ))
             print("Draft: {}".format(data[KEY_JSON_PLAYER_DRAFT]))
             print("Hand: {}".format(data[KEY_JSON_PLAYER_HAND]))
+            self.printOtherPlayerHands(data[KEY_JSON_OTHER_PLAYER_DATA])
+            
 
         elif data[KEY_JSON_GAMESTATE] == GAME_STATE_MID_ROUND:
             print("Draft: {}".format(data[KEY_JSON_PLAYER_DRAFT]))
             print("Hand: {}".format(data[KEY_JSON_PLAYER_HAND]))
+            self.printOtherPlayerHands(data[KEY_JSON_OTHER_PLAYER_DATA])
+            
+
+
+    def printOtherPlayerHands(self, data : dict):
+        print(data)
+        for id in data:
+            print("Player {} draft: {}".format(id, data[id][KEY_JSON_OTHER_PLAYER_DRAFT]))
 
 
     # Debug logging

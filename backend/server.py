@@ -120,26 +120,29 @@ class Server:
                     if gameOver:
                         self.threadPrint(address, playerId, "Detected game over message from boomerang, closing socket + thread.")
                         client.close()
-
                         self.clientLock.acquire()
                         self.clients.remove(client)
-                        self.threadPrint(address, playerId, "Client count: {}".format(len(self.clients)))
-                        self.clientLock.release()
 
-                        # This thread is the last listening thread
+                        # This thread is the last listener, close program
                         if len(self.clients) <= 0:
-                            self.stop()
-
+                            self.stop() 
+                        self.clientLock.release()
                         sys.exit()
                     
                 else:
                     raise Boomerang_NetworkError("No data was sent to the server")
                     
             except Exception as e:
-                self.log("Caught exception in thread, closing connection: {} [{}] \n{}".format(e, repr(e), traceback.print_exc()))
-                self.clients.remove(client)
+                self.log("Caught exception in thread, closing connection and shutting off thread:\n {} [{}] \n{}".format(e, repr(e), traceback.print_exc()))
                 client.close()
-                return False
+                self.clientLock.acquire()
+                self.clients.remove(client)
+
+                # This thread is the last listener, close program
+                if len(self.clients) <= 0:
+                    self.stop() 
+                self.clientLock.release()
+                sys.exit()
             
 
     def threadPrint(self, address, playerId, msg):
@@ -153,7 +156,7 @@ class Server:
 
 
     def stop(self):
-        print("Closing")
+        self.log("Closing connection and exiting all threads")
         self.running = False
         self.socket.close()
 

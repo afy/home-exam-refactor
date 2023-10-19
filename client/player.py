@@ -6,9 +6,9 @@ from shared.custom_exceptions import Boomerang_UnidentifiedMessage, Boomerang_Ne
 # Client controlled by the user; handles input/print logic
 class Player(Client):
     def __init__(self, addr):
-        super().__init__(addr)
+        super().__init__()
         self.ui = UI()
-        self.initSocket()
+        self.initSocket(addr)
 
 
     def onResponse(self, data : dict) -> None:

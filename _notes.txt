@@ -1,7 +1,8 @@
-add annotations
+add annotations + type hints
 review UML
 private functions
-Add functionality and parsing to args
+Add scoring logic
+Add exception handling
 
 
 IN ORIGINAL JAVA

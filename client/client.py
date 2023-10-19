@@ -8,7 +8,7 @@ from shared.custom_exceptions import Boomerang_NetworkError
 # <<Abstract>> class
 # Defines network behaviour for clients (player and bots)
 class Client(ABC):
-    def __init__(self, addr):
+    def __init__(self):
         super().__init__()
         self.playerId = None
         self.gameHand = []
