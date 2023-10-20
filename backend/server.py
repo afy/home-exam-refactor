@@ -40,7 +40,7 @@ class Server:
         self.clientInputBuffer = {}
         self.gameResponseBuffer = {}
         self.maxConnections = numberClients - numberBots
-        if not preventSocketStart: self.initSocket()
+        if not preventSocketStart and self.maxConnections > 0: self.initSocket()
         
 
     def initSocket(self, address=DEFAULT_SERVER_ADDRESS, port=DEFAULT_SERVER_PORT) -> None:
@@ -51,6 +51,12 @@ class Server:
 
     # Await initial connections. Stops when all slots have been filled (self.maxConnections)
     def startListening(self) -> None:
+        
+        # All bot game. Prevent connections
+        if self.maxConnections == 0:
+            self.game.startGame()
+            return
+
         self.socket.listen(self.maxConnections)
         while self.running:
             client, address = self.socket.accept()
@@ -176,7 +182,7 @@ class Server:
         except ValueError:
             raise Boomerang_InvalidArgException("#Bots cant be converted to int")
         
-        if bots < 0 or bots >= clients:
-            raise Boomerang_InvalidArgException("#Bots must be >0 and <#clients")
+        if bots < 0 or bots > clients:
+            raise Boomerang_InvalidArgException("#Bots must be > 0 and <= #clients")
         
         return clients, bots

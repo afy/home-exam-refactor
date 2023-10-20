@@ -25,3 +25,7 @@ class Boomerang_UndefinedLogicError(Exception):
 class Boomerang_NotEnoughCardsException(Exception):
     "Called when not enough are defined in subclass for standard use"
     pass
+
+class Boomerang_InvalidChoiceException(Exception):
+    "Raised when a parameter is set so that the code crashes. Mostly used for testing"
+    pass

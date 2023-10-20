@@ -1,10 +1,4 @@
-add annotations + type hints
 review UML
-private functions
-Add scoring logic
-Add exception handling
-unit testing
-refactor netparser
 
 IN ORIGINAL JAVA
 review req 2, misspelling in regions [0]

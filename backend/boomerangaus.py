@@ -17,9 +17,25 @@ class BoomerangAustralia(BoomerangGame):
             
 
     # Overridden from BoomerangGame
-    def makeBotDecision(self, bot : PlayerData) -> None:
-        if self.gameState == GAME_STATE_ACTIVITY_SELECTION:
+    def makeBotDecision(self, bot : PlayerData, setCardDecision : str = None, setActivityDecision : int = None) -> None:
 
+        # Used for testing
+        if setCardDecision != None and self.gameState == GAME_STATE_MID_ROUND: 
+            playedCard = self.getCardInHand(bot, setCardDecision)
+            bot.hand.remove(playedCard)
+            bot.draft.append(playedCard)
+            return
+        
+        # Used for testing
+        if setActivityDecision != None and self.gameState == GAME_STATE_ACTIVITY_SELECTION:
+            if bot.activities[0] in bot.activityUsed: raise Boomerang_InvalidChoiceException
+            if len(bot.activities) == 0: raise Boomerang_InvalidChoiceException
+            bot.activitySelected = setActivityDecision
+            bot.activityUsed.append(bot.activities[setActivityDecision]) 
+            return
+
+        if self.gameState == GAME_STATE_ACTIVITY_SELECTION:
+            
             # Select first activity if possible
             if len(bot.activities) > 0 and bot.activities[0] not in bot.activityUsed:
                 bot.activitySelected = 0
@@ -145,8 +161,10 @@ class BoomerangAustralia(BoomerangGame):
         for player in self.players:
             if player.score > maxScore:
                 winners = [player]
+                maxScore = player.score
             if player.score == maxScore:
                 winners.append(player)
+                
         if len(winners) == 1: return winners[0].id
 
         # On tie
@@ -209,7 +227,7 @@ class BoomerangAustralia(BoomerangGame):
             self.gameState = GAME_STATE_ACTIVITY_SELECTION
             for player in self.players:
                 for card in player.draft + player.hand:
-                    if card.activity != '' and card.activity not in player.activityUsed:
+                    if card.activity != '' and card.activity not in player.activityUsed and card.activity not in player.activities:
                         player.activities.append(card.activity)
 
 
@@ -282,14 +300,10 @@ class BoomerangAustralia(BoomerangGame):
             'Queensland': ['The Great Barrier Reef', 'The Whitsundays', 'Daintree Rainforest', 'Surfers Paradise'], 
             'South Australia': ['Barossa Valley', 'Lake Eyre', 'Kangaroo Island', 'Mount Gambier'], 
             'New South Whales': ['Blue Mountains', 'Sydney Harbour', 'Bondi Beach', 'Hunter Valley'] ,
-            'Victoria': ['Melbourne', 'The MCG', 'Twelve Apostles', 'Royal Exhibition Building', 'Salamanca Markets'], 
-            'Tasmania': ['Mount Wellington', 'Port Arthur', 'Richmond']
+            'Victoria': ['Melbourne', 'The MCG', 'Twelve Apostles', 'Royal Exhibition Building'], 
+            'Tasmania': ['Salamanca Markets', 'Mount Wellington', 'Port Arthur', 'Richmond']
         }
-        self.codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '*', '-']
-        self.collections = ['Leaves', '', 'Shells', 'Wildflowers', 'Souvenirs']
-        self.animals = ['', 'Kangaroos', 'Emus', 'Wombats', 'Platypuses', 'Koalas']
-        self.activities = ['Indigenous Culture', 'Sightseeing', '', 'Bushwalking', 'Swimming']
-
+        
         # For region scoring
         for region, sites in self.regions.items():
             self.regionsVisited[region] = {}

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+import random
 
 from backend.inetwork import INetwork
 from backend.helpers.networkformatter import NetworkFormatter
@@ -17,9 +18,9 @@ class BoomerangGame(INetwork, ABC):
         self.players = []
         self.playing = False
         self.round = 1
-        self.maxRound = 4
+        self.maxRound = 1
         self.minDeckSize = 28
-        self.handSize = 7
+        self.handSize = 3
         self.deck = []      
         self.logname = _logname
         self.gameState = GAME_STATE_NOT_STARTED
@@ -97,6 +98,7 @@ class BoomerangGame(INetwork, ABC):
 
         # Last round
         if (self.round > self.maxRound):
+            self.calculateRoundScore()
             return self.endGame(self.calculateWinner())         
         if hasBeenReset:
             return self.networkFormatter.formatNewRound(self.players, self.round, self.maxRound)
@@ -150,7 +152,8 @@ class BoomerangGame(INetwork, ABC):
         
 
     def shuffleDeck(self) -> None:
-        pass #random.shuffle(self.deck)
+        random.shuffle(self.deck)
+
 
     def resetDeck(self) -> None:
         for player in self.players:
