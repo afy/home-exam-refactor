@@ -1,5 +1,3 @@
-import json
-
 from client.client import Client
 from client.ui import UI
 
@@ -19,6 +17,7 @@ class Player(Client):
         self.initSocket(addr)
 
 
+    # Overridden from Client
     def onResponse(self, data : dict) -> None:
         msg = data[KEY_JSON_MESSAGE]
         if msg == MESSAGE_NORMAL:
@@ -27,22 +26,22 @@ class Player(Client):
                 return
 
             elif data[KEY_JSON_GAMESTATE] == GAME_STATE_ACTIVITY_SELECTION:
-                if len(data[KEY_JSON_ACTIVITY_LIST]) == 0:
+                if len(data[KEY_JSON_ACTIVITY_LIST]) == 0: # No available options
                     self.inputMode = "skip"
                     return
 
                 self.inputMode = "activity"
-                self.ui.show(data)
                 self.activities = data[KEY_JSON_ACTIVITY_LIST]
                 self.activityInput = []
                 for i in range(0, len(self.activities)):
                     self.activityInput.append(str(i))
+                self.ui.showActivitySelection(data, self.activities)
                 return
             
             else:
                 self.inputMode = "normal"
-                self.ui.show(data)
                 self.gameHand = data[KEY_JSON_PLAYER_HAND]
+                self.ui.show(data)
 
         elif MESSAGE_INVALID_INPUT:
             self.ui.log("Invalid input; Try again")
@@ -52,37 +51,38 @@ class Player(Client):
             raise Boomerang_UnidentifiedMessage("Message type is undefined")
 
 
+    # Overridden from Client
     def onInputRequired(self) -> str:
         if self.inputMode == "skip":
-            print("No activities to pick from, skipping turn ..")
-            return "X"
+            print("No activities to pick from, skipping turn... ")
+            return "X" # No selection
 
-        print("->")
+        self.ui.showPlaintext("->")
         i = input()
         if input != '':
             if self.inputMode == "normal":
                 if i.upper() not in self.gameHand:
-                    self.ui.log("Please select a card from your hand by the code (\"A\" to \"-\")")
+                    self.ui.showPlaintext("Please select a card from your hand by the code (\"A\" to \"-\")")
                     return ""
                 else:
-                    print("Waiting for other players..")
+                    self.ui.showPlaintext("Waiting for other players...")
                     return i
                 
             elif self.inputMode == "activity":
-                print(self.activities)
                 if i.upper() not in self.activityInput and i.upper() != "X":
-                    self.ui.log("Please select a valid activity index or \"X\"")
+                    self.ui.showPlaintext("Please select a valid activity index or skip with \"X\"")
                     return ""
                 else:
-                    print("Waiting for other players..")
+                    self.ui.showPlaintext("Waiting for other players...")
                     return i
                 
 
+    # Overridden from Client
+    def onSocketConnect(self) -> None:
+        self.ui.showPlaintext("Connectied to server, waiting for other players")
 
-    def onLog(self, msg : str) -> None:
-        self.ui.log(msg)
 
-
-    def onInitialConnect(self, data : dict) -> None:
+    # Overridden from Client
+    def onServerAccepted(self, data : dict) -> None:
         self.ui.displayOnConnect(data)
         

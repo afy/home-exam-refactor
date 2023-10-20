@@ -5,7 +5,7 @@ class PlayerData:
         self.hand = []
         self.draft = []
         self.score = 0
-        self.highestThrowScore = 0 # for determining winner at ties
+        self.highestThrowScore = 0 # For determining winner at ties
         self.isBot = bot
 
         self.activities = [] # Activities for latest round

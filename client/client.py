@@ -18,45 +18,47 @@ class Client(ABC):
 
 
     # Required override
+    # Called on response from server
     @abstractmethod
     def onResponse(self, data : dict) -> None:
         raise NotImplementedError
     
     # Required override
-    # returns message to send
+    # Returns message to send
     @abstractmethod
     def onInputRequired(self) -> str:
         raise NotImplementedError
     
     # Required override
+    # Called on SOCKET connect
     @abstractmethod
-    def onLog(self, msg : str) -> None:
+    def onSocketConnect(self) -> None:
         raise NotImplementedError
     
-    # required override 
+    # Required override 
+    # Called on server handshake accept
     @abstractmethod
-    def onInitialConnect(self, data : dict) -> None:
+    def onServerAccepted(self, data : dict) -> None:
         raise NotImplementedError
     
 
     
 
 
-    def initSocket(self, serverAddr=LOCALHOST_CONNECT_ADDR, serverPort=DEFAULT_SERVER_PORT):
+    def initSocket(self, serverAddr=LOCALHOST_CONNECT_ADDR, serverPort=DEFAULT_SERVER_PORT) -> None:
         self.socket = socket.socket()
         self.socket.connect((serverAddr, serverPort))
-        self.onLog("Successfully connected, waiting for lobby")
+        self.onSocketConnect()
 
 
-    def startListening(self):
+    def startListening(self) -> None:
         initialData = json.loads(self.socket.recv(MAX_RECV_SIZE).decode())
         if initialData[KEY_JSON_MESSAGE] != MESSAGE_HANDSHAKE:
             raise Boomerang_NetworkError("First message from server must be a handshake")
 
         self.playerId = int(initialData[KEY_JSON_PLAYER_ID])
         self.gameHand = initialData[KEY_JSON_PLAYER_HAND]
-        self.onInitialConnect(initialData)
-        
+        self.onServerAccepted(initialData)
         self.running = True
         while self.running:
             msg = self.onInputRequired()
@@ -64,11 +66,9 @@ class Client(ABC):
                 self.socket.send(msg.encode())
                 data = self.socket.recv(MAX_RECV_SIZE).decode()
                 data = json.loads(data)
-                print(data)
                 if data[KEY_JSON_GAMESTATE] == GAME_STATE_GAME_OVER:
                     self.socket.close()
                     self.running = False
-
                 self.onResponse(data)
 
 

@@ -15,9 +15,9 @@ class RequirementTesting1(unittest.TestCase):
     def test_requirement1(self):
         self.assertRaises(Boomerang_InvalidArgException, backend.server.Server, 1, 0, True, False)
         self.assertRaises(Boomerang_InvalidArgException, backend.server.Server, 5, 0, True, False)
-        backend.server.Server(2, 0, preventNet=True, logging=False)
-        backend.server.Server(3, 0, preventNet=True, logging=False)
-        backend.server.Server(4, 0, preventNet=True, logging=False)
+        backend.server.Server(2, 0, preventSocketStart=True, logging=False)
+        backend.server.Server(3, 0, preventSocketStart=True, logging=False)
+        backend.server.Server(4, 0, preventSocketStart=True, logging=False)
 
 
     def test_requirement2(self):
@@ -39,7 +39,7 @@ class RequirementTesting1(unittest.TestCase):
 
 
     def test_requirement4(self):
-        s = backend.server.Server(2, 1, preventNet=True, logging=False)
+        s = backend.server.Server(2, 1, preventSocketStart=True, logging=False)
         self.assertEquals(len(s.game.getBots()[0].hand), 7)
 
 

@@ -1,27 +1,29 @@
-import math
-
 from backend.boomerang import BoomerangGame
 from backend.objects.card import Card
+from backend.objects.playerdata import PlayerData
+
 from shared.custom_exceptions import *
 from shared.gamestates import *
+
 
 # Example implementation of the BoomerangGame class,
 # Following the Boomerang Australia ruleset
 class BoomerangAustralia(BoomerangGame): 
     def __init__(self, overrideDeckGeneration = False):
         super().__init__(_logname = "BoomerangAustralia")
+        self.regionsVisited = {}
         if not overrideDeckGeneration:
             self.generateDeckInfo()
-
+            
 
     # Overridden from BoomerangGame
-    def makeBotDecision(self, bot):
+    def makeBotDecision(self, bot : PlayerData) -> None:
         if self.gameState == GAME_STATE_ACTIVITY_SELECTION:
 
-            # select first activity if possible
-            if len(bot.activities) > 0 and bot.activities[0] not in bot.activityUsed == False:
+            # Select first activity if possible
+            if len(bot.activities) > 0 and bot.activities[0] not in bot.activityUsed:
                 bot.activitySelected = 0
-                bot.activityUsed.append(bot.activity[0])
+                bot.activityUsed.append(bot.activities[0])
 
         elif self.gameState == GAME_STATE_MID_ROUND:
             playedCard = bot.hand[0]
@@ -30,20 +32,49 @@ class BoomerangAustralia(BoomerangGame):
 
 
     # Overridden from BoomerangGame
-    def calculateRoundScore(self):
-        self.log("calculating round scores")
+    def calculateRoundScore(self) -> None:
+        lockSites = [] # Sites to lock at the end of round
+        regionsCompleted = [] # Bonus points to hand out at end of round
+
         for player in self.players:
             cards = player.hand + player.draft
 
-            # Throw and catch score
+            # ====================================== Throw and catch score
             throwCatchScore = abs(cards[0].number - cards[len(cards)-1].number)
             if throwCatchScore > player.highestThrowScore:
                 player.highestThrowScore = throwCatchScore
             
-            # Tourist sites score
+            # ====================================== Tourist sites score
+            regionScore = 0
+            for c in cards:
 
+                # Find region card is in
+                region = None
+                for rk, rv in self.regions.items():
+                    if c.touristSite in rv:
+                       region = rk
+                       break
 
-            # Collections score
+                if region == None: raise Boomerang_UndefinedLogicError("No region to associate to the site")
+                
+                # If a region is not locked
+                site = self.regionsVisited[region]["Sites"][c.touristSite]
+                if site[1] == False: 
+                    lockSites.append(self.regionsVisited[region]["Sites"][c.touristSite])  
+                    site[0].append(player.id)
+                    regionScore += 1
+
+                    # Check region cleared
+                    cleared = True
+                    for regSite in self.regionsVisited[region]["Sites"]:
+                        if player.id not in self.regionsVisited[region]["Sites"][regSite][0]:
+                            cleared = False
+                            break
+                    if cleared:
+                        if len(self.regionsVisited[region]["Completed"]) == 0:
+                            regionsCompleted.append([player, region])
+            
+            # ====================================== Collections score
             collValues = {
                 "Leaves": 1,
                 "Wildflowers": 2,
@@ -55,7 +86,7 @@ class BoomerangAustralia(BoomerangGame):
                 if c.collection != '':
                     collectionScore += collValues[c.collection]
 
-            # Animals score
+            # ====================================== Animals score
             animals = {
                 "Kangaroos": 3,
                 "Emus": 4,
@@ -72,8 +103,7 @@ class BoomerangAustralia(BoomerangGame):
                 if ak in counts:
                     animalScore += (counts[ak] % 2) * av
 
-            # Activities score
-            self.log("player activity: {} {} {}".format(player.id, player.activitySelected, player.activityUsed))
+            # ====================================== Activities score
             activityCount = 0
             scoreTable = {
                 "0":0,
@@ -90,30 +120,36 @@ class BoomerangAustralia(BoomerangGame):
             activityScore = scoreTable[str(activityCount)]
             player.activities = [] # Reset activites for next round
 
-            # Tally up all scores
+            # ====================================== Tally up all scores
             if collectionScore <= 7:
-                player.score = collectionScore * 2
+                player.score += collectionScore * 2
             else:
-                player.score += throwCatchScore + collectionScore + animalScore + activityScore
+                player.score += throwCatchScore + collectionScore + animalScore + activityScore + regionScore
+        
+        # ====================================== Bonus scores (After other counts)
+        for site in lockSites:
+            site[1] = True
 
+        for regionInfo in regionsCompleted:
+            player = regionInfo[0]
+            region = regionInfo[1]
+            self.regionsVisited[region]["Completed"].append(player)
+            player.score += 3
             
-    
+
 
     # Overridden from BoomerangGame
-    def calculateWinner(self):
+    def calculateWinner(self) -> int:
         maxScore = 0
         winners = []
-        
         for player in self.players:
             if player.score > maxScore:
                 winners = [player]
-
             if player.score == maxScore:
                 winners.append(player)
-
         if len(winners) == 1: return winners[0].id
 
-        # tie
+        # On tie
         elif len(winners) > 1:
             maxThrowScore = winners[0].score    
             winnerid = winners[0].id 
@@ -121,27 +157,25 @@ class BoomerangAustralia(BoomerangGame):
                 if player.highestThrowScore > maxThrowScore:
                     maxThrowScore = player.highestThrowScore
                     winnerid = player.id
-
             return winnerid
 
 
-    
-
     # Overridden from BoomerangGame
-    # Implementation for Australia
-    def runRound(self, clientInputBuffer):
+    def runRound(self, clientInputBuffer : dict) -> None:
         self.log("Running round, gamestate {}".format(self.gameState))
 
         # Activity selection has been completed
         if self.gameState == GAME_STATE_ACTIVITY_SELECTION:
             for player in self.players: 
+
+                # Add activity to calculations after round if any exist
                 if not player.isBot and clientInputBuffer[player.id].upper() != "X":
                     player.activitySelected = int(clientInputBuffer[player.id])
                     activity = player.activities[player.activitySelected]
                     if activity not in player.activityUsed:
                         player.activityUsed.append(activity)
 
-                # Remove final card, causing round to end
+                # Remove final card, causing round to end after this runRound call
                 finalCard = player.hand[0]
                 player.hand.remove(finalCard)
                 player.draft.append(finalCard)
@@ -150,17 +184,17 @@ class BoomerangAustralia(BoomerangGame):
             self.gameState = GAME_STATE_MID_ROUND
             return
 
-        # update decks and drafts depending on move
+        # Update decks and drafts depending on move
         for playerId, move in clientInputBuffer.items():
             player = self.getPlayerById(int(playerId))
             playedCard = self.getCardInHand(player, move)
             player.hand.remove(playedCard)
             player.draft.append(playedCard)
 
-        # sample a random hand size; all users have the same size
+        # Sample a random hand size; all users have the same size
         currentHandSize = len(self.players[0].hand) 
 
-        # rotate cards   
+        # Rotate cards   
         if currentHandSize > 1:
             lp = len(self.players)-1
             savedDecks = [self.players[lp].hand]
@@ -177,11 +211,10 @@ class BoomerangAustralia(BoomerangGame):
                 for card in player.draft + player.hand:
                     if card.activity != '' and card.activity not in player.activityUsed:
                         player.activities.append(card.activity)
-    
 
 
     # Overridden from BoomerangGame
-    def validateClientInput(self, clientInput, playerId):
+    def validateClientInput(self, clientInput : dict, playerId : int) -> bool:
         try:
             player = self.getPlayerById(playerId)
         except Boomerang_UserNotFoundByIdException:
@@ -197,7 +230,9 @@ class BoomerangAustralia(BoomerangGame):
             except ValueError:
                 return False
         
-            self.log("FIX CLIENT VALIDATION")
+            player = self.getPlayerById(playerId)
+            if clientInput < 0 or clientInput > len(player.activities)-1: # Invalid input range
+                return False
             return True
 
 
@@ -207,11 +242,10 @@ class BoomerangAustralia(BoomerangGame):
                     return True
         else:
             raise Boomerang_UndefinedLogicError
-        
         return False
 
 
-    def generateDeckInfo(self):
+    def generateDeckInfo(self) -> None:
         self.deck.append(Card("The Bungle Bungles","A","Western Australia", 1, "Leaves", "", "Indigenous Culture"))
         self.deck.append(Card("The Pinnacles","B","Western Australia", 1, "", "Kangaroos", "Sightseeing"))
         self.deck.append(Card("Margaret River","C","Western Australia", 1, "Shells", "Kangaroos", ""))
@@ -242,12 +276,25 @@ class BoomerangAustralia(BoomerangGame):
         self.deck.append(Card("Richmond","-","Tasmania", 7, "", "Kangaroos", "Swimming"))
 
         # Valid data
-        self.sites = ['The Bungle Bungles', 'The Pinnacles', 'Margaret River', 'Kalbarri National Park', 'Uluru', 'Kakadu National Park', 'Nitmiluk National Park', 
-                      "King's Canyon", 'The Great Barrier Reef', 'The Whitsundays', 'Daintree Rainforest', 'Surfers Paradise', 'Barossa Valley', 'Lake Eyre', 'Kangaroo Island', 
-                      'Mount Gambier', 'Blue Mountains', 'Sydney Harbour', 'Bondi Beach', 'Hunter Valley', 'Melbourne', 'The MCG', 'Twelve Apostles', 'Royal Exhibition Building', 
-                      'Salamanca Markets', 'Mount Wellington', 'Port Arthur', 'Richmond']
+        self.regions = {
+            'Western Australia': ['The Bungle Bungles', 'The Pinnacles', 'Margaret River', 'Kalbarri National Park'],
+            'Northern Territory': ['Uluru', 'Kakadu National Park', 'Nitmiluk National Park', "King's Canyon"], 
+            'Queensland': ['The Great Barrier Reef', 'The Whitsundays', 'Daintree Rainforest', 'Surfers Paradise'], 
+            'South Australia': ['Barossa Valley', 'Lake Eyre', 'Kangaroo Island', 'Mount Gambier'], 
+            'New South Whales': ['Blue Mountains', 'Sydney Harbour', 'Bondi Beach', 'Hunter Valley'] ,
+            'Victoria': ['Melbourne', 'The MCG', 'Twelve Apostles', 'Royal Exhibition Building', 'Salamanca Markets'], 
+            'Tasmania': ['Mount Wellington', 'Port Arthur', 'Richmond']
+        }
         self.codes = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '*', '-']
-        self.regions = ['Western Australia', 'Northern Territory', 'Queensland', 'South Australia', 'New South Whales', 'Victoria', 'Tasmania']
         self.collections = ['Leaves', '', 'Shells', 'Wildflowers', 'Souvenirs']
         self.animals = ['', 'Kangaroos', 'Emus', 'Wombats', 'Platypuses', 'Koalas']
         self.activities = ['Indigenous Culture', 'Sightseeing', '', 'Bushwalking', 'Swimming']
+
+        # For region scoring
+        for region, sites in self.regions.items():
+            self.regionsVisited[region] = {}
+            self.regionsVisited[region]["Completed"] = []
+            self.regionsVisited[region]["Sites"] = {}
+            for site in sites:
+                self.regionsVisited[region]["Sites"][site] = [[], False] # ( Visited by players , Locked from visiting )
+            

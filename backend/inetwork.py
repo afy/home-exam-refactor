@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 # Used in the base class backend.boomerang.BoomerangGame
 class INetwork(ABC):
     @abstractmethod
-    def onPlayerConnect(self) -> None: pass
+    def onPlayerConnect(self, id : int, maxReached : bool) -> None: pass
 
     @abstractmethod
     def onAllClientInputLogged(self, clientInput : str) -> dict: pass
