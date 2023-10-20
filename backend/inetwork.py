@@ -8,7 +8,7 @@ class INetwork(ABC):
     def onPlayerConnect(self, id : int, maxReached : bool) -> None: pass
 
     @abstractmethod
-    def onAllClientInputLogged(self, clientInput : str) -> dict: pass
+    def onAllClientInputLogged(self, clientInputBuffer : dict) -> dict: pass
 
     @abstractmethod
     def getInitialValues(self, playerId : int) -> dict: pass

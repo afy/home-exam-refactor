@@ -12,17 +12,18 @@ from shared.gamestates import *
 # <<Abstract>> class representing the various versions of Boomerang
 # Any variant inherits and overrides from this class, and should then work with current system
 class BoomerangGame(INetwork, ABC):
-    def __init__(self, _logname="Boomerang"):
+    def __init__(self, _logname="Boomerang", _logging = True):
         super().__init__()
         self.networkFormatter = NetworkFormatter()
         self.players = []
         self.playing = False
         self.round = 1
-        self.maxRound = 1
+        self.maxRound = 4
         self.minDeckSize = 28
-        self.handSize = 3
+        self.handSize = 7
         self.deck = []      
         self.logname = _logname
+        self.logging = _logging
         self.gameState = GAME_STATE_NOT_STARTED
 
 
@@ -130,13 +131,12 @@ class BoomerangGame(INetwork, ABC):
     def startGame(self) -> None:
         self.playing = True
         self.log("Game started")
-        self.shuffleDeck()
         self.round = 1
         self.gameState = GAME_STATE_MID_ROUND
         
 
     # Overridden from INetwork
-    def getInitialValues(self, playerId : int) -> None:
+    def getInitialValues(self, playerId : int) -> dict:
         return self.networkFormatter.formatInitial(self.getPlayerById(int(playerId)))
     
 
@@ -147,6 +147,7 @@ class BoomerangGame(INetwork, ABC):
     # Must return a formatted view from networkFormatter
     def endGame(self, winnerId : int):
         self.playing = False
+        self.gameState = GAME_STATE_GAME_OVER
         self.log("Game over")
         return self.networkFormatter.formatGameOver(self.players, winnerId)
         
@@ -175,6 +176,7 @@ class BoomerangGame(INetwork, ABC):
 
 
     def log(self, msg : str) -> None:
+        if not self.logging: return
         print("[{}]: {}".format(self.logname, msg))
 
 

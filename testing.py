@@ -12,8 +12,17 @@ from shared.custom_exceptions import *
 
 # Note: not all requirements can be tested
 # Additionally, the time ran out :(
+
 # Requirements covered in test cases below:
-# 1, 2, 3, 4, 5, 6, 8
+# 1, 2, 3, 4, 5, 6, 8, 12
+
+# Requirements not covered due to time below:
+# 10a, 10b, 10c, 10d, 10e
+
+# Requirements unable to be tested below:
+# 7 (Tested manually)
+
+
 
 class RequirementTesting(unittest.TestCase):
     # Requirement 1: server must host between 2 and 4 players
@@ -30,7 +39,7 @@ class RequirementTesting(unittest.TestCase):
     # Builtin list.shuffle() can produce same output in places
     # So allow for some flexibility
     def testDeck(self):
-        game = backend.boomerangaus.BoomerangAustralia()
+        game = backend.boomerangaus.BoomerangAustralia(logging=False)
         self.assertEqual(len(game.deck), 28)
         validRegions = {
             'Western Australia': ['The Bungle Bungles', 'The Pinnacles', 'Margaret River', 'Kalbarri National Park'],
@@ -63,8 +72,10 @@ class RequirementTesting(unittest.TestCase):
 
 
     # Requirement 4: Deal 7 cards to each player
+    # Requirement 5: Each player select a throw card
     # Requirement 6: Hand is passed along
     # Requirement 8: Continue 6 and 7 until only one card remains (combined with manual testing)
+    # Requirement 11: After the end of each round, scores are added up and a new round is started
     def testGameLogic(self):
         s = backend.server.Server(4, 4, preventSocketStart=True, logging=False)
         s.startListening() # Bot only game; no sockets
@@ -73,16 +84,19 @@ class RequirementTesting(unittest.TestCase):
         # Requirment 4
         self.assertEqual(len(s.game.getBots()[0].hand), 7) 
         
-        # Requirement 5
         hand1 = copy.deepcopy(bots[0].hand[1:8])
         hand2 = copy.deepcopy(bots[1].hand[1:8])
         hand3 = copy.deepcopy(bots[2].hand[1:8])
         hand4 = copy.deepcopy(bots[3].hand[1:8])
-        s.game.makeBotDecision(bots[0], setCardDecision=bots[0].hand[0].code)
+
+        # Requirement 5
+        s.game.makeBotDecision(bots[0], setCardDecision=bots[0].hand[0].code) 
         s.game.makeBotDecision(bots[1], setCardDecision=bots[1].hand[0].code)
-        s.game.makeBotDecision(bots[2], setCardDecision=bots[2].hand[0].code)
+        s.game.makeBotDecision(bots[2], setCardDecision=bots[2].hand[0].code) 
         s.game.makeBotDecision(bots[3], setCardDecision=bots[3].hand[0].code)
         s.game.runRound({})
+
+        # Requirement 6
         for i in range(5):
             self.assertEqual(hand1[i].code, bots[1].hand[i].code)
             self.assertEqual(hand2[i].code, bots[2].hand[i].code)
@@ -95,6 +109,30 @@ class RequirementTesting(unittest.TestCase):
             s.game.makeBotDecision(bots[1], setCardDecision=bots[1].hand[0].code)
             s.game.makeBotDecision(bots[2], setCardDecision=bots[2].hand[0].code)
             s.game.makeBotDecision(bots[3], setCardDecision=bots[3].hand[0].code)
+        for bot in bots:
+            self.assertEqual(len(bot.hand), 1)
+
+        # Requirement 11
+        s.game.onAllClientInputLogged({})
+        self.assertEqual(len(bots[0].hand), 7)
+        self.assertEqual(len(bots[1].hand), 7)
+        self.assertEqual(len(bots[2].hand), 7)
+        self.assertEqual(len(bots[3].hand), 7)
+        self.assertNotEqual(bots[0].score, 0)
+        self.assertNotEqual(bots[1].score, 0)
+        self.assertNotEqual(bots[2].score, 0)
+        self.assertNotEqual(bots[3].score, 0)
+
+
+    # Requirement 12: End game after fourth round
+    def testFullGame(self):
+        s = backend.server.Server(4, 4, preventSocketStart=True, logging=False)
+        s.startListening() # Bot only game; no sockets
+        for i in range(4):          
+            for j in range(7):
+                self.assertTrue(s.game.gameState != 2)
+                s.game.onAllClientInputLogged({})
+        self.assertEqual(s.game.gameState, 2)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,6 @@
-# Thanks to
+# Thanks for basic socket server structure:
 # https://stackoverflow.com/questions/23828264/how-to-make-a-simple-multithreaded-socket-server-in-python-that-remembers-client
+
 
 import socket
 import threading
@@ -23,7 +24,7 @@ class Server:
 
         # Replace with any Boomerang game class
         # Must inherit and fully implement backend.boomerang.BoomerangGame.
-        self.game = BoomerangAustralia() 
+        self.game = BoomerangAustralia(logging = self.logging) 
 
         # Initialize bots
         self.currentId = 0

@@ -66,7 +66,6 @@ class Client(ABC):
                 self.socket.send(msg.encode())
                 data = self.socket.recv(MAX_RECV_SIZE).decode()
                 data = json.loads(data)
-                print(data)
                 if data[KEY_JSON_GAMESTATE] == GAME_STATE_GAME_OVER:
                     self.socket.close()
                     self.running = False

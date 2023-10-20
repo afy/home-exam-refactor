@@ -6,7 +6,7 @@ from shared.custom_exceptions import Boomerang_UndefinedLogicError
 # Responsible for client-side display, client.player.Player class only
 class UI:
     def __init__(self): 
-        self.largeDivider = ("=" * 30) + " "
+        self.largeDivider = ("=" * 40) + " "
         self.smallDivider = ("="*20) + " "
 
 
@@ -25,7 +25,7 @@ class UI:
                 print("Player {} scored {} points".format(pid, pdata[KEY_JSON_OTHER_PLAYER_SCORE]))
 
             if winnerId == data[KEY_JSON_PLAYER_ID]:
-                print("You won the game!")
+                print("\nYou won the game!")
             else:
                 print("\nPlayer {} won the game!".format(winnerId))
         else:
@@ -52,7 +52,7 @@ class UI:
     def showActivitySelection(self, data : dict, activities : list) -> None:
         if data[KEY_JSON_GAMESTATE] == GAME_STATE_ACTIVITY_SELECTION:
             print(self.smallDivider)
-            print("Select one activity from the list below. Input corresponding index (starting at one)")
+            print("Select one activity from the list below. Input corresponding index (starting at zero)")
             print("Input \"X\" instead to skip selection")
             print("Activities: {}".format(activities))
             

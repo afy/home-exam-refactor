@@ -9,8 +9,8 @@ from shared.gamestates import *
 # Example implementation of the BoomerangGame class,
 # Following the Boomerang Australia ruleset
 class BoomerangAustralia(BoomerangGame): 
-    def __init__(self, overrideDeckGeneration = False):
-        super().__init__(_logname = "BoomerangAustralia")
+    def __init__(self, overrideDeckGeneration = False, logging = True):
+        super().__init__(_logname = "BoomerangAustralia", _logging =  logging)
         self.regionsVisited = {}
         if not overrideDeckGeneration:
             self.generateDeckInfo()
@@ -212,8 +212,8 @@ class BoomerangAustralia(BoomerangGame):
         # Sample a random hand size; all users have the same size
         currentHandSize = len(self.players[0].hand) 
 
-        # Rotate cards   
-        if currentHandSize > 1:
+        # Rotate cards "up"
+        if currentHandSize >= 1:
             lp = len(self.players)-1
             savedDecks = [self.players[lp].hand]
             for i in range(0, lp):
@@ -222,8 +222,18 @@ class BoomerangAustralia(BoomerangGame):
                 self.players[j].hand = savedDecks[j]
             self.gameState = GAME_STATE_MID_ROUND
 
-        # One card left, change mode to activity selection
+
+        # One card left, rotate "down" and change mode to activity selection
         if currentHandSize == 1:
+            if currentHandSize == 1:
+                lp = len(self.players)-1
+            savedDecks = [self.players[0].hand]
+            for i in range(1, lp+1):
+                savedDecks.append(self.players[i].hand)
+            for j in range(0, lp+1):
+                self.players[j].hand = savedDecks[j]
+
+            self.gameState = GAME_STATE_MID_ROUND
             self.gameState = GAME_STATE_ACTIVITY_SELECTION
             for player in self.players:
                 for card in player.draft + player.hand:
@@ -292,6 +302,7 @@ class BoomerangAustralia(BoomerangGame):
         self.deck.append(Card("Mount Wellington","Z","Tasmania", 7, "", "Koalas", "Sightseeing"))
         self.deck.append(Card("Port Arthur","*","Tasmania", 7, "Leaves", "", "Indigenous Culture"))
         self.deck.append(Card("Richmond","-","Tasmania", 7, "", "Kangaroos", "Swimming"))
+        self.shuffleDeck()
 
         # Valid data
         self.regions = {

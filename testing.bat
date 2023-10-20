@@ -1,2 +1,0 @@
-python testing.py
-pause
